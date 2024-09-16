@@ -1,3 +1,7 @@
+# AlphaMtG
+
+[AlphaZero](https://arxiv.org/abs/1712.01815) is a state-of-the-art deep learning algorithm that can learn to play Chess and Shogi at superhuman levels of strategy. This project's goal is to develop a similar model for Magic: the Gathering within the Forge rules engine.
+
 # Forge
 
 Join the [Discord](https://discord.gg/HcPJNyD66a)
