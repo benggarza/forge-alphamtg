@@ -17,6 +17,8 @@
  */
 package forge.game.spellability;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import forge.card.ColorSet;
 import forge.card.GamePieceType;
@@ -48,6 +50,7 @@ import forge.game.zone.ZoneType;
 import forge.util.TextUtil;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -252,7 +255,7 @@ public class AbilityManaPart implements java.io.Serializable {
         eff.setColor(MagicColor.COLORLESS);
         eff.setGamePieceType(GamePieceType.EFFECT);
 
-        String cantcounterstr = "Event$ Counter | ValidCard$ Card.IsRemembered | Description$ That spell can't be countered.";
+        String cantcounterstr = "Event$ Counter | ValidSA$ Spell.IsRemembered | Description$ That spell can't be countered.";
         ReplacementEffect re = ReplacementHandler.parseReplacement(cantcounterstr, eff, true);
         re.setLayer(ReplacementLayer.CantHappen);
         eff.addReplacementEffect(re);
@@ -322,16 +325,13 @@ public class AbilityManaPart implements java.io.Serializable {
         return this.triggersWhenSpent != null;
     }
 
-    public void addTriggersWhenSpent(SpellAbility saBeingPaid, Card card) {
-        if (this.triggersWhenSpent == null)
-            return;
-
-        TriggerHandler handler = card.getGame().getTriggerHandler();
+    public void addTriggersWhenSpent(SpellAbility saBeingPaid) {
         Trigger trig = TriggerHandler.parseTrigger(sVarHolder.getSVar(this.triggersWhenSpent), sourceCard, false, sVarHolder);
-        if (sVarHolder instanceof SpellAbility) {
-            trig.setSpawningAbility((SpellAbility) sVarHolder);
+        trig.addRemembered(saBeingPaid);
+        if (getSourceSA() != null) {
+            trig.setSpawningAbility(getSourceSA());
         }
-        handler.registerOneTrigger(trig);
+        saBeingPaid.getHostCard().getGame().getTriggerHandler().registerThisTurnDelayedTrigger(trig);
     }
 
     public SpellAbility getSourceSA() {
@@ -516,7 +516,7 @@ public class AbilityManaPart implements java.io.Serializable {
         }
         String produced = this.getOrigProduced();
         if (produced.contains("Chosen")) {
-            produced = produced.replace("Chosen", this.getChosenColor(sa));
+            produced = produced.replace("Chosen", getChosenColor(sa, sa.getHostCard().getChosenColors()));
         }
         return produced;
     }
@@ -652,7 +652,18 @@ public class AbilityManaPart implements java.io.Serializable {
         }
         // replace Chosen for Combo colors
         if (origProduced.contains("Chosen")) {
-            origProduced = origProduced.replace("Chosen", getChosenColor(sa));
+            origProduced = origProduced.replace("Chosen", getChosenColor(sa, sa.getHostCard().getChosenColors()));
+        }
+        // replace Chosen for Spire colors
+        if (origProduced.contains("ColorID")) {
+            Iterator<String> colors = Iterators.transform(sa.getHostCard().getMarkedColors().iterator(),
+                    new Function<>() {
+                        @Override
+                        public String apply(Byte b) {
+                            return MagicColor.toLongString(b);
+                        }
+                    });
+            origProduced = origProduced.replace("ColorID", getChosenColor(sa, () -> colors));
         }
         if (origProduced.contains("NotedColors")) {
             // Should only be used for Paliano, the High City
@@ -697,13 +708,17 @@ public class AbilityManaPart implements java.io.Serializable {
         return sb.length() == 0 ? "" : sb.substring(0, sb.length() - 1);
     }
 
-    public String getChosenColor(SpellAbility sa) {
+    public String getChosenColor(SpellAbility sa, Iterable<String> colors) {
         if (sa == null) {
             return "";
         }
         Card card = sa.getHostCard();
-        if (card != null && card.hasChosenColor()) {
-            return MagicColor.toShortString(card.getChosenColor());
+        if (card != null) {
+            StringBuilder values = new StringBuilder();
+            for (String c : colors) {
+                values.append(MagicColor.toShortString(c)).append(" ");
+            }
+            return values.toString().trim();
         }
         return "";
     }

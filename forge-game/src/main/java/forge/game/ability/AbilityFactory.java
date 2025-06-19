@@ -37,6 +37,7 @@ import io.sentry.Sentry;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -60,7 +61,6 @@ public final class AbilityFactory {
             "FallbackAbility", // Complex Unless costs which can be unpayable
             "ChooseSubAbility", // Can choose a player via ChoosePlayer
             "CantChooseSubAbility", // Can't choose a player via ChoosePlayer
-            "AnimateSubAbility", // For ChangeZone Effects to Animate before ETB
             "RegenerationAbility", // for Regeneration Effect
             "ReturnAbility", // for Delayed Trigger on Magpie
             "GiftAbility" // for Promise Gift
@@ -180,26 +180,19 @@ public final class AbilityFactory {
     }
 
     public static Cost parseAbilityCost(final CardState state, Map<String, String> mapParams, AbilityRecordType type) {
-        Cost abCost = null;
-        if (type != AbilityRecordType.SubAbility) {
-            String cost = mapParams.get("Cost");
-            if (cost == null) {
-                if (type == AbilityRecordType.Spell) {
-                    SpellAbility firstAbility = state.getFirstAbility();
-                    if (firstAbility != null && firstAbility.isSpell()) {
-                        // TODO might remove when Enchant Keyword is refactored
-                        System.err.println(state.getName() + " already has Spell using mana cost");
-                    }
-                    // for a Spell if no Cost is used, use the card states ManaCost
-                    abCost = new Cost(state.getManaCost(), false);
-                } else {
-                    throw new RuntimeException("AbilityFactory : getAbility -- no Cost in " + state.getName());
-                }
-            } else {
-                abCost = new Cost(cost, type == AbilityRecordType.Ability);
-            }
+        if (type == AbilityRecordType.SubAbility) {
+            return null;
         }
-        return abCost;
+        String cost = mapParams.get("Cost");
+        if (cost != null) {
+            return new Cost(cost, type == AbilityRecordType.Ability);
+        }
+        if (type == AbilityRecordType.Spell) {
+            // for a Spell if no Cost is used, use the card states ManaCost
+            return new Cost(state.getManaCost(), false);
+        } else {
+            throw new RuntimeException("AbilityFactory : getAbility -- no Cost in " + state.getName());
+        }
     }
 
     public static SpellAbility getAbility(AbilityRecordType type, ApiType api, Map<String, String> mapParams,
@@ -213,15 +206,6 @@ public final class AbilityFactory {
             // No need to have each of those scripts have that info
             if (abTgt != null) {
                 abTgt.setZone(ZoneType.Stack);
-            }
-        }
-
-        else if (api == ApiType.PermanentCreature || api == ApiType.PermanentNoncreature) {
-            // If API is a permanent type, and creating AF Spell
-            // Clear out the auto created SpellPermanent spell
-            if (type == AbilityRecordType.Spell
-                    && !mapParams.containsKey("SubAbility") && !mapParams.containsKey("NonBasicSpell")) {
-                hostCard.clearFirstSpell();
             }
         }
 
@@ -253,10 +237,13 @@ public final class AbilityFactory {
             spellAbility.putParam("PlayerTurn", "True");
             spellAbility.putParam("PrecostDesc", "Forecast — ");
         }
-        if (mapParams.containsKey("Boast")) {
+        if (spellAbility.isBoast()) {
             spellAbility.putParam("PresentDefined", "Self");
             spellAbility.putParam("IsPresent", "Card.attackedThisTurn");
             spellAbility.putParam("PrecostDesc", "Boast — ");
+        }
+        if (spellAbility.isExhaust()) {
+            spellAbility.putParam("PrecostDesc", "Exhaust — ");
         }
 
         // *********************************************
@@ -285,7 +272,15 @@ public final class AbilityFactory {
             final String key = "Choices";
             if (mapParams.containsKey(key)) {
                 List<String> names = Lists.newArrayList(mapParams.get(key).split(","));
-                spellAbility.setAdditionalAbilityList(key, Lists.transform(names, input -> getSubAbility(state, input, sVarHolder)));
+                spellAbility.setAdditionalAbilityList(key, names.stream().map(input -> {
+                    AbilitySub sub = getSubAbility(state, input, sVarHolder);
+                    if (api == ApiType.GenericChoice) {
+                        // support scripters adding restrictions to filter illegal choices
+                        sub.setRestrictions(new SpellAbilityRestriction());
+                        makeRestrictions(sub);
+                    }
+                    return sub;
+                }).collect(Collectors.toList()));
             }
         }
 
@@ -499,8 +494,9 @@ public final class AbilityFactory {
         AbilityRecordType leftType = AbilityRecordType.getRecordType(leftMap);
         ApiType leftApi = leftType.getApiTypeOf(leftMap);
         leftMap.put("StackDescription", leftMap.get("SpellDescription"));
-        leftMap.put("SpellDescription", "Fuse (you may cast both halves of this card from your hand).");
+        leftMap.put("SpellDescription", "Fuse (You may cast one or both halves of this card from your hand.)");
         leftMap.put("ActivationZone", "Hand");
+        leftMap.put("Secondary", "True");
 
         CardState rightState = card.getState(CardStateName.RightSplit);
         SpellAbility rightAbility = rightState.getFirstAbility();
@@ -515,8 +511,10 @@ public final class AbilityFactory {
         totalCost.add(parseAbilityCost(rightState, rightMap, rightType));
 
         final SpellAbility left = getAbility(leftType, leftApi, leftMap, totalCost, leftState, leftState);
+        left.setOriginalAbility(leftAbility);
         left.setCardState(card.getState(CardStateName.Original));
         final AbilitySub right = (AbilitySub) getAbility(AbilityRecordType.SubAbility, rightApi, rightMap, null, rightState, rightState);
+        right.setOriginalAbility(rightAbility);
         left.appendSubAbility(right);
         return left;
     }

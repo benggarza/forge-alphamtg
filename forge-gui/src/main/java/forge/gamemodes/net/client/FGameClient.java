@@ -1,10 +1,6 @@
 package forge.gamemodes.net.client;
 
-import java.util.List;
-import java.util.concurrent.TimeoutException;
-
 import com.google.common.collect.Lists;
-
 import forge.game.player.PlayerView;
 import forge.gamemodes.net.CompatibleObjectDecoder;
 import forge.gamemodes.net.CompatibleObjectEncoder;
@@ -16,27 +12,28 @@ import forge.gamemodes.net.event.NetEvent;
 import forge.gui.interfaces.IGuiGame;
 import forge.interfaces.ILobbyListener;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelPipeline;
-import io.netty.channel.EventLoopGroup;
+import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.serialization.ClassResolvers;
 
-public class FGameClient implements IToServer {
 
+import java.util.List;
+import java.util.concurrent.TimeoutException;
+
+public class FGameClient implements IToServer {
     private final IGuiGame clientGui;
+    private final String hostname;
+    private final Integer port;
     private final List<ILobbyListener> lobbyListeners = Lists.newArrayList();
     private final ReplyPool replies = new ReplyPool();
     private Channel channel;
 
-    public FGameClient(final String username, final String roomKey, final IGuiGame clientGui) {
+    public FGameClient(String username, String roomKey, IGuiGame clientGui, String hostname, int port) {
         this.clientGui = clientGui;
+        this.hostname = hostname;
+        this.port = port;
     }
 
     final IGuiGame getGui() {
@@ -46,7 +43,7 @@ public class FGameClient implements IToServer {
         return replies;
     }
 
-    public void connect(final String host, final int port) {
+    public void connect() {
         final EventLoopGroup group = new NioEventLoopGroup();
         try {
             final Bootstrap b = new Bootstrap()
@@ -66,18 +63,20 @@ public class FGameClient implements IToServer {
              });
 
             // Start the connection attempt.
-            channel = b.connect(host, port).sync().channel();
+            channel = b.connect(this.hostname, this.port).sync().channel();
             final ChannelFuture ch = channel.closeFuture();
             new Thread(() -> {
                 try {
                     ch.sync();
                 } catch (final InterruptedException e) {
+                    System.out.println(e.getMessage());
                     e.printStackTrace();
                 } finally {
                     group.shutdownGracefully();
                 }
             }).start();
         } catch (final InterruptedException e) {
+            System.out.println(e.getMessage());
             e.printStackTrace();
         }
     }

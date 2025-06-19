@@ -21,6 +21,8 @@ import com.google.common.collect.Maps;
 import forge.game.ability.AbilityKey;
 import forge.game.card.Card;
 import forge.game.card.CardCollection;
+import forge.game.card.CounterEnumType;
+import forge.game.card.CounterType;
 import forge.game.player.Player;
 import forge.game.spellability.SpellAbility;
 import forge.game.trigger.TriggerType;
@@ -78,13 +80,14 @@ public class CostUntap extends CostPart {
     @Override
     public final boolean canPay(final SpellAbility ability, final Player payer, final boolean effect) {
         final Card source = ability.getHostCard();
-        return source.isTapped() && !source.isAbilitySick();
+        return source.isTapped() && !source.isAbilitySick() &&
+                (source.getCounters(CounterEnumType.STUN) == 0 || source.canRemoveCounters(CounterType.get(CounterEnumType.STUN)));
     }
 
     @Override
     public boolean payAsDecided(Player ai, PaymentDecision decision, SpellAbility ability, final boolean effect) {
         final Card c = ability.getHostCard();
-        if (c.untap(true)) {
+        if (c.untap()) {
             final Map<AbilityKey, Object> runParams = AbilityKey.newMap();
             final Map<Player, CardCollection> map = Maps.newHashMap();
             map.put(ai, new CardCollection(c));

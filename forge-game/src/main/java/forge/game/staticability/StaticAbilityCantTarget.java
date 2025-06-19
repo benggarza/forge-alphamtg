@@ -19,6 +19,7 @@ package forge.game.staticability;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import com.google.common.collect.Lists;
 
@@ -42,7 +43,7 @@ public class StaticAbilityCantTarget {
         final Game game = card.getGame();
         for (final Card ca : game.getCardsIn(ZoneType.STATIC_ABILITIES_SOURCE_ZONES)) {
             for (final StaticAbility stAb : ca.getStaticAbilities()) {
-                if (!stAb.checkConditions(MODE)) {
+                if (!stAb.checkConditions(StaticAbilityMode.CantTarget)) {
                     continue;
                 }
 
@@ -58,7 +59,7 @@ public class StaticAbilityCantTarget {
         final Game game = player.getGame();
         for (final Card ca : game.getCardsIn(ZoneType.STATIC_ABILITIES_SOURCE_ZONES)) {
             for (final StaticAbility stAb : ca.getStaticAbilities()) {
-                if (!stAb.checkConditions(MODE)) {
+                if (!stAb.checkConditions(StaticAbilityMode.CantTarget)) {
                     continue;
                 }
 
@@ -81,8 +82,7 @@ public class StaticAbilityCantTarget {
      *            the spell/ability
      * @return true, if successful
      */
-    public static boolean applyCantTargetAbility(final StaticAbility stAb, final Card card,
-            final SpellAbility spellAbility) {
+    public static boolean applyCantTargetAbility(final StaticAbility stAb, final Card card, final SpellAbility spellAbility) {
         if (stAb.hasParam("ValidPlayer")) {
             return false;
         }
@@ -104,8 +104,9 @@ public class StaticAbilityCantTarget {
                 return false;
             }
         }
+        Set<ZoneType> zones = stAb.getActiveZone();
 
-        if ("Stack".equals(stAb.getParam("EffectZone"))) {
+        if (zones != null && zones.contains(ZoneType.Stack)) {
             // Enthralling Hold: only works if it wasn't already cast
             if (card.getGame().getStack().getSpellMatchingHost(spellAbility.getHostCard()) != null) {
                 return false;
@@ -135,11 +136,7 @@ public class StaticAbilityCantTarget {
         final Card source = spellAbility.getHostCard();
         final Player activator = spellAbility.getActivatingPlayer();
 
-        if (stAb.isKeyword(Keyword.HEXPROOF) && StaticAbilityIgnoreHexproofShroud.ignore(entity, spellAbility, Keyword.HEXPROOF)) {
-            return false;
-        }
-
-        if (stAb.isKeyword(Keyword.SHROUD) && StaticAbilityIgnoreHexproofShroud.ignore(entity, spellAbility, Keyword.SHROUD)) {
+        if ((stAb.isKeyword(Keyword.HEXPROOF) || stAb.isKeyword(Keyword.SHROUD)) && StaticAbilityIgnoreHexproofShroud.ignore(entity, spellAbility, stAb)) {
             return false;
         }
 

@@ -15,6 +15,7 @@ Omenpath
 Power-Plant
 Sphere:Spheres
 Tower
+Town:Towns
 Urza's
 [CreatureTypes]
 Advisor:Advisors
@@ -37,6 +38,7 @@ Aurochs:Aurochs
 Avatar:Avatars
 Azra:Azra
 Badger:Badgers
+Balloon:Balloons
 Barbarian:Barbarians
 Bard:Bards
 Basilisk:Basilisks
@@ -118,6 +120,7 @@ Gargoyle:Gargoyles
 Germ:Germs
 Giant:Giants
 Gith:Gith
+Glimmer:Glimmers
 Gnoll:Gnolls
 Gnome:Gnomes
 Goat:Goats
@@ -134,6 +137,7 @@ Halfling:Halflings
 Hamster:Hamsters
 Harpy:Harpies
 Hellion:Hellions
+Hero:Heroes
 Hippo:Hippos
 Hippogriff:Hippogriffs
 Homarid:Homarids
@@ -184,6 +188,7 @@ Monger:Mongers
 Mongoose:Mongooses
 Monk:Monks
 Monkey:Monkeys
+Moogle:Moogles
 Moonfolk:Moonfolk
 Mount:Mounts
 Mouse:Mice
@@ -228,6 +233,7 @@ Praetor:Praetors
 Primarch:Primarchs
 Prism:Prisms
 Processor:Processors
+Qu:Qu
 Raccoon:Raccoons
 Rabbit:Rabbits
 Ranger:Rangers
@@ -250,6 +256,7 @@ Scion:Scions
 Scorpion:Scorpions
 Scout:Scouts
 Sculpture:Sculptures
+Seal:Seals
 Serf:Serfs
 Serpent:Serpents
 Servo:Servos
@@ -283,6 +290,7 @@ Squid:Squids
 Squirrel:Squirrels
 Starfish:Starfish
 Surrakar:Surrakars
+Symbiote:Symbiotes
 Synth:Synths
 Survivor:Survivors
 Tentacle:Tentacles
@@ -303,6 +311,7 @@ Unicorn:Unicorns
 Vampire:Vampires
 Varmint:Varmints
 Vedalken:Vedalkens
+Villain:Villains
 Volver:Volvers
 Wall:Walls
 Warlock:Warlocks
@@ -326,6 +335,7 @@ Adventure
 Arcane
 Chorus
 Lesson
+Omen
 Trap
 [EnchantmentTypes]
 Aura:Auras

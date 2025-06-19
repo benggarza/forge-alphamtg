@@ -57,6 +57,7 @@ public enum Keyword {
     DISGUISE("Disguise", KeywordWithCost.class, false, "You may cast this card face down for {3} as a 2/2 creature with ward {2}. Turn it face up any time for its disguise cost."),
     DISTURB("Disturb", KeywordWithCost.class, false, "You may cast this card from your graveyard transformed for its disturb cost."),
     DOCTORS_COMPANION("Doctor's companion", Partner.class, true, "You can have two commanders if the other is the Doctor."),
+    DOUBLE_AGENDA("Double agenda", SimpleKeyword.class, false, "Start the game with this conspiracy face down in the command zone and secretly choose two different card names. You may turn this conspiracy face up any time and reveal those names."),
     DOUBLE_STRIKE("Double Strike", SimpleKeyword.class, true, "This creature deals both first-strike and regular combat damage."),
     DOUBLE_TEAM("Double team", SimpleKeyword.class, true, "When this creature attacks, if it's not a token, conjure a duplicate of it into your hand. Then both cards perpetually lose double team."),
     DREDGE("Dredge", KeywordWithAmount.class, false, "If you would draw a card, instead you may put exactly {%d:card} from the top of your library into your graveyard. If you do, return this card from your graveyard to your hand. Otherwise, draw a card."),
@@ -95,10 +96,12 @@ public enum Keyword {
     GIFT("Gift", SimpleKeyword.class, true, "You may promise an opponent a gift as you cast this spell. If you do, when it enters, they %s."),
     GRAFT("Graft", KeywordWithAmount.class, false, "This permanent enters with {%d:+1/+1 counter} on it. Whenever another creature enters, you may move a +1/+1 counter from this permanent onto it."),
     GRAVESTORM("Gravestorm", SimpleKeyword.class, false, "When you cast this spell, copy it for each permanent that was put into a graveyard from the battlefield this turn. If the spell has any targets, you may choose new targets for any of the copies."),
+    HARMONIZE("Harmonize", KeywordWithCost.class, false, "You may cast this card from your graveyard for its harmonize cost. You may tap a creature you control to reduce that cost by {X}, where X is its power. Then exile this spell."),
     HASTE("Haste", SimpleKeyword.class, true, "This creature can attack and {T} as soon as it comes under your control."),
     HAUNT("Haunt", SimpleKeyword.class, false, "When this is put into a graveyard, exile it haunting target creature."),
     HEXPROOF("Hexproof", Hexproof.class, true, "This can't be the target of %s spells or abilities your opponents control."),
     HIDEAWAY("Hideaway", KeywordWithAmount.class, false, "When this permanent enters, look at the top {%d:card} of your library, exile one face down, then put the rest on the bottom of your library."),
+    HIDDEN_AGENDA("Hidden agenda", SimpleKeyword.class, false, "Start the game with this conspiracy face down in the command zone and secretly choose a card name. You may turn this conspiracy face up any time and reveal that name."),
     HORSEMANSHIP("Horsemanship", SimpleKeyword.class, true, "This creature can't be blocked except by creatures with horsemanship."),
     IMPENDING("Impending", KeywordWithCostAndAmount.class, false, "If you cast this spell for its impending cost, it enters with {%2$d:time counter} and isn't a creature until the last is removed. At the beginning of your end step, remove a time counter from it."),
     IMPROVISE("Improvise", SimpleKeyword.class, true, "Your artifacts can help cast this spell. Each artifact you tap after you're done activating mana abilities pays for {1}."),
@@ -107,11 +110,12 @@ public enum Keyword {
     INGEST("Ingest", SimpleKeyword.class, false, "Whenever this creature deals combat damage to a player, that player exiles the top card of their library."),
     INTIMIDATE("Intimidate", SimpleKeyword.class, true, "This creature can't be blocked except by artifact creatures and/or creatures that share a color with it."),
     KICKER("Kicker", Kicker.class, false, "You may pay an additional %s as you cast this spell."),
+    JOB_SELECT("Job select", SimpleKeyword.class, false, "When this Equipment enters, create a 1/1 colorless Hero creature token, then attach this to it."),
     JUMP_START("Jump-start", SimpleKeyword.class, false, "You may cast this card from your graveyard by discarding a card in addition to paying its other costs. Then exile this card."),
     LANDWALK("Landwalk", KeywordWithType.class, true, "This creature is unblockable as long as defending player controls {1:%s}."),
     LEVEL_UP("Level up", KeywordWithCost.class, false, "%s: Put a level counter on this. Level up only as a sorcery."),
     LIFELINK("Lifelink", SimpleKeyword.class, true, "Damage dealt by this creature also causes its controller to gain that much life."),
-    LIVING_METAL("Living metal", SimpleKeyword.class, true, "As long as it's your turn, this Vehicle is also a creature."),
+    LIVING_METAL("Living metal", SimpleKeyword.class, true, "During your turn, this Vehicle is also a creature."),
     LIVING_WEAPON("Living Weapon", SimpleKeyword.class, true, "When this Equipment enters, create a 0/0 black Phyrexian Germ creature token, then attach this to it."),
     MADNESS("Madness", KeywordWithCost.class, false, "If you discard this card, discard it into exile. When you do, cast it for its madness cost or put it into your graveyard."),
     MELEE("Melee", SimpleKeyword.class, false, "Whenever this creature attacks, it gets +1/+1 until end of turn for each opponent you attacked this combat."),
@@ -119,6 +123,7 @@ public enum Keyword {
     MENACE("Menace", SimpleKeyword.class, true, "This creature can't be blocked except by two or more creatures."),
     MEGAMORPH("Megamorph", KeywordWithCost.class, false, "You may cast this card face down as a 2/2 creature for {3}. Turn it face up any time for its megamorph cost and put a +1/+1 counter on it."),
     MIRACLE("Miracle", KeywordWithCost.class, false, "You may cast this card for its miracle cost when you draw it if it's the first card you drew this turn."),
+    MOBILIZE("Mobilize", KeywordWithAmount.class, false, "When this creature attacks, create {%1$d:tapped and attacking 1/1 red Warrior creature token}. Sacrifice them at the beginning of the next end step."),
     // technically not a keyword but easier this way
     MONSTROSITY("Monstrosity", KeywordWithCostAndAmount.class, false, "If this creature isn't monstrous, put {%2$d:+1/+1 counter} on it and it becomes monstrous."),
     MODULAR("Modular", Modular.class, false, "This creature enters with {%d:+1/+1 counter} on it. When it dies, you may put its +1/+1 counters on target artifact creature."),
@@ -171,12 +176,14 @@ public enum Keyword {
     SPLIT_SECOND("Split second", SimpleKeyword.class, true, "As long as this spell is on the stack, players can't cast other spells or activate abilities that aren't mana abilities."),
     SPREE("Spree", SimpleKeyword.class, true, "Choose one or more additional costs."),
     SQUAD("Squad", KeywordWithCost.class, false, "As an additional cost to cast this spell, you may pay %s any number of times. When this creature enters, create that many tokens that are copies of it."),
+    START_YOUR_ENGINES("Start your engines", SimpleKeyword.class, true, "If you have no speed, it starts at 1. It increases once on each of your turns when an opponent loses life. Max speed is 4."),
     STARTING_INTENSITY("Starting intensity", KeywordWithAmount.class, true, null),
     STORM("Storm", SimpleKeyword.class, false, "When you cast this spell, copy it for each other spell that was cast before it this turn. You may choose new targets for the copies."),
     STRIVE("Strive", KeywordWithCost.class, false, "CARDNAME costs %s more to cast for each target beyond the first."),
     SUNBURST("Sunburst", SimpleKeyword.class, false, "This enters with either a +1/+1 or charge counter on it for each color of mana spent to cast it based on whether it's a creature."),
     SURGE("Surge", KeywordWithCost.class, false, "You may cast this spell for its surge cost if you or a teammate has cast another spell this turn."),
     SUSPEND("Suspend", Suspend.class, false, "If you could begin to cast this card by putting it onto the stack from your hand, you may pay %s and exile it with {%d:time counter} on it. At the beginning of your upkeep, remove a time counter. When the last is removed, play it without paying its mana cost. If you cast a creature spell this way, it gains haste until you lose control of the spell or the permanent it becomes."),
+    TIERED("Tiered", SimpleKeyword.class, true, "Choose one additional cost."),
     TOXIC("Toxic", KeywordWithAmount.class, false, "Players dealt combat damage by this creature also get {%d:poison counter}."),
     TRAINING("Training", SimpleKeyword.class, false, "Whenever this creature attacks with another creature with greater power, put a +1/+1 counter on this creature."),
     TRAMPLE("Trample", Trample.class, true, "This creature can deal excess combat damage to the player or planeswalker it's attacking."),
@@ -326,6 +333,10 @@ public enum Keyword {
             }
         }
         return result;
+    }
+
+    public String getReminderText() {
+        return reminderText;
     }
 
     public boolean isMultipleRedundant() {

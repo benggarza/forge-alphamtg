@@ -13,8 +13,10 @@ import forge.gui.UiCommand;
 import forge.gui.framework.FScreen;
 import forge.gui.framework.ICDoc;
 import forge.localinstance.properties.ForgeConstants;
+import forge.localinstance.properties.ForgeNetPreferences;
 import forge.localinstance.properties.ForgePreferences;
 import forge.localinstance.properties.ForgePreferences.FPref;
+import forge.localinstance.properties.PreferencesStore;
 import forge.model.FModel;
 import forge.player.GamePlayerUtil;
 import forge.screens.deckeditor.CDeckEditorUI;
@@ -35,6 +37,7 @@ import java.awt.event.ItemEvent;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Controls the preferences submenu in the home UI.
@@ -50,6 +53,7 @@ public enum CSubmenuPreferences implements ICDoc {
 
     private VSubmenuPreferences view;
     private ForgePreferences prefs;
+    private ForgeNetPreferences netPrefs;
     private boolean updating;
 
     private final List<Pair<JCheckBox, FPref>> lstControls = new ArrayList<>();
@@ -67,6 +71,7 @@ public enum CSubmenuPreferences implements ICDoc {
 
         this.view = VSubmenuPreferences.SINGLETON_INSTANCE;
         this.prefs = FModel.getPreferences();
+        this.netPrefs = FModel.getNetPreferences();
 
         // This updates variable right now and is not standard
         view.getCbDevMode().addItemListener(arg0 -> {
@@ -107,6 +112,7 @@ public enum CSubmenuPreferences implements ICDoc {
         lstControls.add(Pair.of(view.getCbAnte(), FPref.UI_ANTE));
         lstControls.add(Pair.of(view.getCbAnteMatchRarity(), FPref.UI_ANTE_MATCH_RARITY));
         lstControls.add(Pair.of(view.getCbManaBurn(), FPref.UI_MANABURN));
+        lstControls.add(Pair.of(view.getCbOrderCombatants(), FPref.LEGACY_ORDER_COMBATANTS));
         lstControls.add(Pair.of(view.getCbScaleLarger(), FPref.UI_SCALE_LARGER));
         lstControls.add(Pair.of(view.getCbRenderBlackCardBorders(), FPref.UI_RENDER_BLACK_BORDERS));
         lstControls.add(Pair.of(view.getCbLargeCardViewers(), FPref.UI_LARGE_CARD_VIEWERS));
@@ -115,6 +121,7 @@ public enum CSubmenuPreferences implements ICDoc {
         lstControls.add(Pair.of(view.getCbEnforceDeckLegality(), FPref.ENFORCE_DECK_LEGALITY));
         lstControls.add(Pair.of(view.getCbPerformanceMode(), FPref.PERFORMANCE_MODE));
         lstControls.add(Pair.of(view.getCbExperimentalRestore(), FPref.MATCH_EXPERIMENTAL_RESTORE));
+        lstControls.add(Pair.of(view.getCbOrderHand(), FPref.UI_ORDER_HAND));
         lstControls.add(Pair.of(view.getCbFilteredHands(), FPref.FILTERED_HANDS));
         lstControls.add(Pair.of(view.getCbCloneImgSource(), FPref.UI_CLONE_MODE_SOURCE));
         lstControls.add(Pair.of(view.getCbRemoveSmall(), FPref.DECKGEN_NOSMALL));
@@ -137,7 +144,7 @@ public enum CSubmenuPreferences implements ICDoc {
         lstControls.add(Pair.of(view.getCbTimedTargOverlay(), FPref.UI_TIMED_TARGETING_OVERLAY_UPDATES));
         lstControls.add(Pair.of(view.getCbCompactMainMenu(), FPref.UI_COMPACT_MAIN_MENU));
         lstControls.add(Pair.of(view.getCbUseSentry(), FPref.USE_SENTRY));
-        lstControls.add(Pair.of(view.getCbPromptFreeBlocks(), FPref.MATCHPREF_PROMPT_FREE_BLOCKS));
+        lstControls.add(Pair.of(view.getCbCheckSnapshot(), FPref.CHECK_SNAPSHOT_AT_STARTUP));
         lstControls.add(Pair.of(view.getCbPauseWhileMinimized(), FPref.UI_PAUSE_WHILE_MINIMIZED));
         lstControls.add(Pair.of(view.getCbWorkshopSyntax(), FPref.DEV_WORKSHOP_SYNTAX));
 
@@ -192,13 +199,11 @@ public enum CSubmenuPreferences implements ICDoc {
 
         view.getBtnTokenPreviewer().setCommand((UiCommand) CSubmenuPreferences.this::openTokenPreviewer);
 
-        view.getBtnResetJavaFutureCompatibilityWarnings().setCommand((UiCommand) () -> {
-            prefs.setPref(FPref.DISABLE_DISPLAY_JAVA_8_UPDATE_WARNING, false);
-            prefs.save();
-            FOptionPane.showMessageDialog(localizer.getMessage("CompatibilityWarningsReEnabled"));
-        });
-
         view.getBtnContentDirectoryUI().setCommand((UiCommand) CSubmenuPreferences.this::openContentDirectory);
+        view.getCbCheckSnapshot().addItemListener(e -> {
+            Singletons.getView().getNavigationBar().setUpdaterVisibility();
+            prefs.save();
+        });
 
         initializeGameLogVerbosityComboBox();
         initializeCloseActionComboBox();
@@ -206,9 +211,11 @@ public enum CSubmenuPreferences implements ICDoc {
         initializeCardArtFormatComboBox();
         initializeCardArtPreference();
         initializeAutoUpdaterComboBox();
+        initializeServerUPnPComboBox();
         initializeMulliganRuleComboBox();
         initializeAiProfilesComboBox();
         initializeAiSideboardingModeComboBox();
+        initializeAiTimeoutComboBox();
         initializeSoundSetsComboBox();
         initializeMusicSetsComboBox();
         initializeStackAdditionsComboBox();
@@ -220,6 +227,7 @@ public enum CSubmenuPreferences implements ICDoc {
         initializeCounterDisplayLocationComboBox();
         initializeGraveyardOrderingComboBox();
         initializePlayerNameButton();
+        initializeServerPortButton();
         initializeDefaultLanguageComboBox();
 
         disableLazyLoading();
@@ -255,7 +263,9 @@ public enum CSubmenuPreferences implements ICDoc {
         if (FOptionPane.showConfirmDialog(userPrompt, localizer.getMessage("TresetForgeSettingsToDefault"))) {
             final ForgePreferences prefs = FModel.getPreferences();
             prefs.reset();
+            netPrefs.reset();
             prefs.save();
+            netPrefs.save();
             update();
             Singletons.getControl().restartForge();
         }
@@ -370,6 +380,31 @@ public enum CSubmenuPreferences implements ICDoc {
         panel.setComboBox(comboBox, selectedItem);
     }
 
+    private void initializeServerUPnPComboBox() {
+        // Step 1: Define the localized strings and mappings
+        final Map<String, String> upnpPreferenceMapping = ForgeConstants.getUPnPPreferenceMapping();
+        final String[] localizedOptions = upnpPreferenceMapping.keySet().toArray(new String[0]); // Localized strings
+
+        // Step 2: Get the preference key
+        final ForgeNetPreferences.FNetPref uPnPPreference = ForgeNetPreferences.FNetPref.UPnP;
+
+        // Step 3: Create the combo box with localized strings
+        final FComboBoxPanel<String> panel = this.view.getCbpServerUPnPOption();
+        final FComboBox<String> comboBox = createLocalizedComboBox(localizedOptions, uPnPPreference, upnpPreferenceMapping);
+
+        // Step 4: Pre-select the localized value based on the saved internal value
+        final String savedInternalValue = this.netPrefs.getPref(uPnPPreference);
+        final String selectedLocalizedValue = upnpPreferenceMapping.entrySet()
+                .stream()
+                .filter(entry -> entry.getValue().equals(savedInternalValue))
+                .map(Map.Entry::getKey)
+                .findFirst()
+                .orElse(localizer.getMessage("lblAsk")); // Default value
+
+        panel.setComboBox(comboBox, selectedLocalizedValue);
+    }
+
+
     private void initializeMulliganRuleComboBox() {
         final String [] choices = MulliganDefs.getMulliganRuleNames();
         final FPref userSetting = FPref.MULLIGAN_RULE;
@@ -413,6 +448,14 @@ public enum CSubmenuPreferences implements ICDoc {
         final String selectedItem = this.prefs.getPref(userSetting);
         panel.setComboBox(comboBox, selectedItem);
         comboBox.addActionListener(actionEvent -> AiProfileUtil.setAiSideboardingMode(AiProfileUtil.AISideboardingMode.normalizedValueOf(comboBox.getSelectedItem())));
+    }
+
+    private void initializeAiTimeoutComboBox() {
+        final FPref userSetting = FPref.MATCH_AI_TIMEOUT;
+        final FComboBoxPanel<String> panel = this.view.getAiTimeoutComboBox();
+        final FComboBox<String> comboBox = createComboBox(new String[] {"5", "10", "60", "120", "240", "300", "600"}, userSetting);
+        final String selectedItem = this.prefs.getPref(userSetting);
+        panel.setComboBox(comboBox, selectedItem);
     }
 
     private void initializeSoundSetsComboBox() {
@@ -569,18 +612,72 @@ public enum CSubmenuPreferences implements ICDoc {
 
     }
 
-    private <E> FComboBox<E> createComboBox(final E[] items, final ForgePreferences.FPref setting) {
+    private <E> FComboBox<E> createComboBox(final E[] items, final PreferencesStore.IPref setting) {
         final FComboBox<E> comboBox = new FComboBox<>(items);
         addComboBoxListener(comboBox, setting);
         return comboBox;
     }
 
-    private <E> void addComboBoxListener(final FComboBox<E> comboBox, final ForgePreferences.FPref setting) {
+    private <E> FComboBox<E> createLocalizedComboBox(
+            final E[] localizedItems,
+            final PreferencesStore.IPref setting,
+            final Map<E, String> mapping) {
+
+        //Step 1: Create the combo box
+        final FComboBox<E> comboBox = new FComboBox<>(localizedItems);
+
+        //Step 2: Add a listener using the localized to internal mappings to save internal values based on localized selection
+        addLocalizedComboBoxListener(comboBox, setting, mapping);
+
+        return comboBox;
+    }
+
+
+    private <E> void addComboBoxListener(final FComboBox<E> comboBox, final PreferencesStore.IPref setting) {
         comboBox.addItemListener(e -> {
             final E selectedType = comboBox.getSelectedItem();
-            CSubmenuPreferences.this.prefs.setPref(setting, selectedType.toString());
+            if (setting instanceof ForgePreferences.FPref) {
+                // Cast setting to ForgePreferences.FPref
+                CSubmenuPreferences.this.prefs.setPref((ForgePreferences.FPref) setting, selectedType.toString());
+            } else if (setting instanceof ForgeNetPreferences.FNetPref) {
+                // Cast setting to ForgeNetPreferences.FNetPref
+                CSubmenuPreferences.this.netPrefs.setPref((ForgeNetPreferences.FNetPref) setting, selectedType.toString());
+            }
             CSubmenuPreferences.this.prefs.save();
         });
+    }
+
+    private <E> void addLocalizedComboBoxListener(
+            final FComboBox<E> comboBox,
+            final PreferencesStore.IPref setting,
+            final Map<E, String> mapping) {
+
+        comboBox.addItemListener(e -> {
+            if (e.getStateChange() == ItemEvent.SELECTED) {
+                final E selectedLocalized = comboBox.getSelectedItem(); // Localized string
+                final String internalValue = mapping.get(selectedLocalized); // Map localized string to internal value
+
+                // Save the mapped internal value to the correct preferences
+                if (setting instanceof ForgePreferences.FPref) {
+                    CSubmenuPreferences.this.prefs.setPref((ForgePreferences.FPref) setting, internalValue);
+                    CSubmenuPreferences.this.prefs.save();
+                } else if (setting instanceof ForgeNetPreferences.FNetPref) {
+                    CSubmenuPreferences.this.netPrefs.setPref((ForgeNetPreferences.FNetPref) setting, internalValue);
+                    CSubmenuPreferences.this.netPrefs.save();
+                }
+            }
+        });
+    }
+
+    private void initializeServerPortButton() {
+        final FLabel btn = view.getBtnServerPort();
+        setServerPortButtonText();
+        btn.setCommand(getServerPortButtonCommand());
+    }
+    private void setServerPortButtonText() {
+        final FLabel btn = view.getBtnServerPort();
+        final int port = netPrefs.getPrefInt(ForgeNetPreferences.FNetPref.NET_PORT);
+        btn.setText(Integer.toString(port));
     }
 
     private void initializePlayerNameButton() {
@@ -606,6 +703,13 @@ public enum CSubmenuPreferences implements ICDoc {
         return () -> {
             GamePlayerUtil.setPlayerName();
             setPlayerNameButtonText();
+        };
+    }
+
+    private UiCommand getServerPortButtonCommand() {
+        return () -> {
+            GamePlayerUtil.setServerPort();
+            setServerPortButtonText();
         };
     }
 }

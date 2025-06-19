@@ -1,6 +1,5 @@
 package forge.gamesimulationtests.util;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
@@ -23,6 +22,7 @@ import forge.deck.Deck;
 import forge.deck.DeckSection;
 import forge.game.*;
 import forge.game.ability.AbilityUtils;
+import forge.game.ability.effects.RollDiceEffect;
 import forge.game.card.*;
 import forge.game.combat.Combat;
 import forge.game.combat.CombatUtil;
@@ -54,10 +54,8 @@ import forge.util.collect.FCollectionView;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.function.Predicate;
 
 /**
  * Default harmless implementation for tests.
@@ -84,11 +82,6 @@ public class PlayerControllerForTests extends PlayerController {
 
     public Player getPlayer() {
         return player;
-    }
-
-    @Override
-    public void playSpellAbilityForFree(SpellAbility copySA, boolean mayChoseNewTargets) {
-        throw new IllegalStateException("Callers of this method currently assume that it performs extra functionality!");
     }
 
     @Override
@@ -168,6 +161,11 @@ public class PlayerControllerForTests extends PlayerController {
     @Override
     public CardCollectionView chooseCardsForEffect(CardCollectionView sourceList, SpellAbility sa, String title, int min, int max, boolean isOptional, Map<String, Object> params) {
         return chooseItems(sourceList, max);
+    }
+
+    @Override
+    public List<Card> chooseContraptionsToCrank(List<Card> contraptions) {
+        return contraptions;
     }
 
     @Override
@@ -447,7 +445,7 @@ public class PlayerControllerForTests extends PlayerController {
     }
 
     @Override
-    public boolean payManaOptional(Card card, Cost cost, SpellAbility sa, String prompt, ManaPaymentPurpose purpose) {
+    public boolean payCombatCost(Card card, Cost cost, SpellAbility sa, String prompt) {
         throw new IllegalStateException("Callers of this method currently assume that it performs extra functionality!");
     }
 
@@ -502,13 +500,18 @@ public class PlayerControllerForTests extends PlayerController {
     }
 
     @Override
-    public String chooseSomeType(String kindOfType, SpellAbility sa, Collection<String> validTypes, List<String> invalidTypes, boolean isOptional) {
+    public String chooseSomeType(String kindOfType, SpellAbility sa, Collection<String> validTypes, boolean isOptional) {
         return chooseItem(validTypes);
     }
 
     @Override
     public String chooseSector(Card assignee, String ai, List<String> sectors) {
         return chooseItem(sectors);
+    }
+
+    @Override
+    public int chooseSprocket(Card assignee, boolean forceDifferent) {
+        return forceDifferent && assignee.getSprocket() == 1 ? 2 : 1;
     }
 
     @Override
@@ -519,6 +522,26 @@ public class PlayerControllerForTests extends PlayerController {
     @Override
     public Integer chooseRollToIgnore(List<Integer> rolls) {
         return Aggregates.random(rolls);
+    }
+
+    @Override
+    public List<Integer> chooseDiceToReroll(List<Integer> rolls) {
+        return new ArrayList<>();
+    }
+
+    @Override
+    public Integer chooseRollToModify(List<Integer> rolls) {
+        return Aggregates.random(rolls);
+    }
+
+    @Override
+    public RollDiceEffect.DieRollResult chooseRollToSwap(List<RollDiceEffect.DieRollResult> rolls) {
+        return Aggregates.random(rolls);
+    }
+
+    @Override
+    public String chooseRollSwapValue(List<String> swapChoices, Integer currentResult, int power, int toughness) {
+        return Aggregates.random(swapChoices);
     }
 
     @Override
@@ -573,6 +596,12 @@ public class PlayerControllerForTests extends PlayerController {
     }
 
     @Override
+    public boolean payCostDuringRoll(final Cost cost, final SpellAbility sa, final FCollectionView<Player> allPayers) {
+        // TODO Auto-generated method stub
+        return false;
+    }
+
+    @Override
     public void orderAndPlaySimultaneousSa(List<SpellAbility> activePlayerSAs) {
         for (final SpellAbility sa : activePlayerSAs) {
             prepareSingleSa(sa.getHostCard(),sa,true);
@@ -599,18 +628,13 @@ public class PlayerControllerForTests extends PlayerController {
 
     @Override
     public boolean playSaFromPlayEffect(SpellAbility tgtSA) {
-        // TODO Auto-generated method stub
-        boolean optional = tgtSA.hasParam("Optional");
+        boolean optional = !tgtSA.getPayCosts().isMandatory();
         boolean noManaCost = tgtSA.hasParam("WithoutManaCost");
         if (tgtSA instanceof Spell) { // Isn't it ALWAYS a spell?
             Spell spell = (Spell) tgtSA;
             // if (spell.canPlayFromEffectAI(player, !optional, noManaCost) || !optional) {  -- could not save this part
             if (spell.canPlay() || !optional) {
-                if (noManaCost) {
-                    ComputerUtil.playSpellAbilityWithoutPayingManaCost(player, tgtSA, getGame());
-                } else {
-                    ComputerUtil.playStack(tgtSA, player, getGame());
-                }
+                ComputerUtil.playStack(tgtSA, player, getGame());
             } else
                 return false; // didn't play spell
         }
@@ -728,6 +752,18 @@ public class PlayerControllerForTests extends PlayerController {
     }
 
     @Override
+    public ICardFace chooseSingleCardFace(SpellAbility sa, List<ICardFace> faces, String message) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public CardState chooseSingleCardState(SpellAbility sa, List<CardState> states, String message, Map<String, Object> params) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
     public Card chooseDungeon(Player player, List<PaperCard> dungeonCards, String message) {
         // TODO Auto-generated method stub
         return null;
@@ -774,4 +810,9 @@ public class PlayerControllerForTests extends PlayerController {
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+    @Override
+    public List<CostPart> orderCosts(List<CostPart> costs) {
+        return costs;
+    }
 }

@@ -239,6 +239,10 @@ public abstract class Trigger extends TriggerReplacementBase {
             if (!validPhases.contains(phaseHandler.getPhase())) {
                 return false;
             }
+            // add support for calculation if needed
+            if (hasParam("PhaseCount") && phaseHandler.getNumMain() + 1 != 2) {
+                return false;
+            }
         }
 
         if (hasParam("PlayerTurn")) {
@@ -528,9 +532,12 @@ public abstract class Trigger extends TriggerReplacementBase {
     }
 
     public final Trigger copy(Card newHost, boolean lki) {
+        return copy(newHost, lki, false);
+    }
+    public final Trigger copy(Card newHost, boolean lki, boolean keepTextChanges) {
         final Trigger copy = (Trigger) clone();
 
-        copyHelper(copy, newHost);
+        copyHelper(copy, newHost, lki || keepTextChanges);
 
         if (getOverridingAbility() != null) {
             copy.setOverridingAbility(getOverridingAbility().copy(newHost, lki));

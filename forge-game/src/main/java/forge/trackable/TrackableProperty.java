@@ -33,11 +33,10 @@ public enum TrackableProperty {
     Flipped(TrackableTypes.BooleanType),
     Facedown(TrackableTypes.BooleanType),
     Foretold(TrackableTypes.BooleanType),
-    Manifested(TrackableTypes.BooleanType),
-    Cloaked(TrackableTypes.BooleanType),
     Modal(TrackableTypes.BooleanType),
-    Adventure(TrackableTypes.BooleanType),
+    Secondary(TrackableTypes.BooleanType),
     DoubleFaced(TrackableTypes.BooleanType),
+    FacedownImageKey(TrackableTypes.StringType),
 
     //TODO?
     Cloner(TrackableTypes.StringType),
@@ -78,11 +77,14 @@ public enum TrackableProperty {
     ChosenMode(TrackableTypes.StringType),
     ChosenSector(TrackableTypes.StringType),
     Sector(TrackableTypes.StringListType),
+    Sprocket(TrackableTypes.IntegerType),
     DraftAction(TrackableTypes.StringListType),
     ClassLevel(TrackableTypes.IntegerType),
     RingLevel(TrackableTypes.IntegerType),
     CurrentRoom(TrackableTypes.StringType),
     Intensity(TrackableTypes.IntegerType),
+    OverlayText(TrackableTypes.StringType),
+    MarkerText(TrackableTypes.StringListType),
     Remembered(TrackableTypes.StringType),
     NamedCard(TrackableTypes.StringListType),
     PlayerMayLook(TrackableTypes.PlayerViewCollectionType, FreezeMode.IgnoresFreeze),
@@ -98,6 +100,7 @@ public enum TrackableProperty {
     NeedsTransformAnimation(TrackableTypes.BooleanType, FreezeMode.IgnoresFreeze),
     NeedsUntapAnimation(TrackableTypes.BooleanType, FreezeMode.IgnoresFreeze),
     NeedsTapAnimation(TrackableTypes.BooleanType, FreezeMode.IgnoresFreeze),
+    MarkedColors(TrackableTypes.ColorSetType),
 
     ImprintedCards(TrackableTypes.CardViewCollectionType),
     ExiledCards(TrackableTypes.CardViewCollectionType),
@@ -109,6 +112,7 @@ public enum TrackableProperty {
     AlternateState(TrackableTypes.CardStateViewType, FreezeMode.IgnoresFreeze),
     LeftSplitState(TrackableTypes.CardStateViewType, FreezeMode.IgnoresFreeze),
     RightSplitState(TrackableTypes.CardStateViewType, FreezeMode.IgnoresFreeze),
+    Room(TrackableTypes.BooleanType, FreezeMode.IgnoresFreeze),
     HiddenId(TrackableTypes.IntegerType),
     ExertedThisTurn(TrackableTypes.BooleanType),
 
@@ -173,17 +177,13 @@ public enum TrackableProperty {
     HasVigilance(TrackableTypes.BooleanType),
     HasLandwalk(TrackableTypes.BooleanType),
     HasAftermath(TrackableTypes.BooleanType),
-    //protectionkey
     ProtectionKey(TrackableTypes.StringType),
-    //hexproofkey
     HexproofKey(TrackableTypes.StringType),
     HasHaste(TrackableTypes.BooleanType),
     HasInfect(TrackableTypes.BooleanType),
     HasStorm(TrackableTypes.BooleanType),
     HasWard(TrackableTypes.BooleanType),
     HasWither(TrackableTypes.BooleanType),
-    YouMayLook(TrackableTypes.BooleanType),
-    OpponentMayLook(TrackableTypes.BooleanType),
     BlockAdditional(TrackableTypes.IntegerType),
     BlockAny(TrackableTypes.BooleanType),
     AbilityText(TrackableTypes.StringType),
@@ -218,6 +218,7 @@ public enum TrackableProperty {
     CommanderCast(TrackableTypes.IntegerMapType),
     CommanderDamage(TrackableTypes.IntegerMapType),
     MindSlaveMaster(TrackableTypes.PlayerViewType),
+
     Ante(TrackableTypes.CardViewCollectionType, FreezeMode.IgnoresFreeze),
     Battlefield(TrackableTypes.CardViewCollectionType, FreezeMode.IgnoresFreeze), //zones can't respect freeze, otherwise cards that die from state based effects won't have that reflected in the UI
     Command(TrackableTypes.CardViewCollectionType, FreezeMode.IgnoresFreeze),
@@ -227,7 +228,14 @@ public enum TrackableProperty {
     Hand(TrackableTypes.CardViewCollectionType, FreezeMode.IgnoresFreeze),
     Library(TrackableTypes.CardViewCollectionType, FreezeMode.IgnoresFreeze),
     Sideboard(TrackableTypes.CardViewCollectionType, FreezeMode.IgnoresFreeze),
+    PlanarDeck(TrackableTypes.CardViewCollectionType, FreezeMode.IgnoresFreeze),
+    SchemeDeck(TrackableTypes.CardViewCollectionType, FreezeMode.IgnoresFreeze),
+    AttractionDeck(TrackableTypes.CardViewCollectionType, FreezeMode.IgnoresFreeze),
+    ContraptionDeck(TrackableTypes.CardViewCollectionType, FreezeMode.IgnoresFreeze),
+    Junkyard(TrackableTypes.CardViewCollectionType, FreezeMode.IgnoresFreeze),
+
     Mana(TrackableTypes.ManaMapType, FreezeMode.IgnoresFreeze),
+
     IsExtraTurn(TrackableTypes.BooleanType),
     ExtraTurnCount(TrackableTypes.IntegerType),
     HasPriority(TrackableTypes.BooleanType, FreezeMode.IgnoresFreeze),
@@ -240,6 +248,14 @@ public enum TrackableProperty {
     Description(TrackableTypes.StringType),
     CanPlay(TrackableTypes.BooleanType),
     PromptIfOnlyPossibleAbility(TrackableTypes.BooleanType),
+
+    //ReplacementEffectView
+    RE_HostCard(TrackableTypes.CardViewType),
+    RE_Description(TrackableTypes.StringType),
+
+    //StaticAbilityView
+    ST_HostCard(TrackableTypes.CardViewType),
+    ST_Description(TrackableTypes.StringType),
 
     //HasBackSide
     BackSideName(TrackableTypes.StringType),
@@ -284,7 +300,8 @@ public enum TrackableProperty {
     GameLog(TrackableTypes.StringType),
     NeedsPhaseRedrawn(TrackableTypes.BooleanType),
     PlayerTurn(TrackableTypes.PlayerViewType, FreezeMode.IgnoresFreeze),
-    Phase(TrackableTypes.EnumType(PhaseType.class), FreezeMode.IgnoresFreeze);
+    Phase(TrackableTypes.EnumType(PhaseType.class), FreezeMode.IgnoresFreeze),
+    Dependencies(TrackableTypes.StringType);
 
     public enum FreezeMode {
         IgnoresFreeze,

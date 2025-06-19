@@ -56,7 +56,7 @@ ScryfallCode=ZNR
 40 U Skyclave Cleric @Johannes Voss
 41 R Squad Commander @Ekaterina Burmak
 42 C Smite the Monstrous @Izzy
-43 C Tazeem Raptor @Dan Scott
+43 C Tazeem Raptor @Dan Murayama Scott
 44 M Tazri, Beacon of Unity @Chris Rahn
 45 C Anticognition @Igor Kieryluk
 46 U Beyeen Veil @YW Tang
@@ -177,7 +177,7 @@ ScryfallCode=ZNR
 161 M Shatterskull Smashing @Adam Paquette
 162 C Sizzling Barrage @Johann Bodin
 163 U Skyclave Geopede @Filip Burburan
-164 C Sneaking Guide @Dan Scott
+164 C Sneaking Guide @Dan Murayama Scott
 165 U Song-Mad Treachery @Zoltan Boros
 166 U Spikefield Hazard @Tomasz Jedruszek
 167 C Spitfire Lagac @Antonio José Manzanedo
@@ -217,7 +217,7 @@ ScryfallCode=ZNR
 201 U Roiling Regrowth @Jonas De Ro
 202 C Scale the Heights @Cristi Balanescu
 203 R Scute Swarm @Alex Konstad
-204 U Skyclave Pick-Axe @Dan Scott
+204 U Skyclave Pick-Axe @Dan Murayama Scott
 205 U Springmantle Cleric @Cristi Balanescu
 206 C Strength of Solidarity @Svetlin Velinov
 207 R Swarm Shambler @Nicholas Gregory
@@ -399,6 +399,8 @@ ScryfallCode=ZNR
 377 R Skyclave Relic @Daniel Ljunggren
 378 R Crawling Barrens @Jonas De Ro
 379 R Throne of Makindi @Igor Kieryluk
+
+[precon product]
 380 L Plains @Adam Paquette
 381 L Island @Tianhua X
 382 L Swamp @Adam Paquette
@@ -474,14 +476,14 @@ A257 U A-Base Camp @Jokubas Uogintas
 6 Zof Consumption|ZNR
 
 [tokens]
-w_4_4_angel_warrior_flying
-w_1_1_cat
-w_2_2_cat_beast
-w_1_1_kor_warrior
-u_2_2_drake_flying
-u_x_x_illusion
-g_1_1_insect
-g_0_1_plant
-bg_x_x_hydra
-c_1_1_a_construct
-c_0_1_a_goblin_construct_noblock_ping
+1 w_4_4_angel_warrior_flying @Zoltan Boros
+2 w_1_1_cat @Ilse Gort
+3 w_2_2_cat_beast @Bayard Wu
+4 w_1_1_kor_warrior @Randy Vargas
+5 u_2_2_drake_flying @Bayard Wu
+6 u_x_x_illusion @Jason A. Engle
+7 g_1_1_insect @Jakub Kasper
+8 g_0_1_plant @Jakub Kasper
+9 bg_x_x_hydra @Filip Burburan
+10 c_1_1_a_construct @Jokubas Uogintas
+11 c_0_1_a_goblin_construct_noblock_ping @Johan Grenier

@@ -17,20 +17,16 @@
  */
 package forge.card;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Set;
-
 import com.google.common.collect.UnmodifiableIterator;
-
 import forge.card.MagicColor.Color;
 import forge.card.mana.ManaCost;
 import forge.card.mana.ManaCostShard;
 import forge.util.BinaryUtil;
+
+import java.io.Serializable;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * <p>CardColor class.</p>
@@ -297,14 +293,8 @@ public final class ColorSet implements Comparable<ColorSet>, Iterable<Byte>, Ser
      */
     @Override
     public String toString() {
-        if (this.orderWeight == -1) {
-            return "n/a";
-        }
-        final String toReturn = MagicColor.toLongString(myColor);
-        if (toReturn.equals(MagicColor.Constant.COLORLESS) && myColor != 0) {
-            return "multi";
-        }
-        return toReturn;
+        final ManaCostShard[] orderedShards = getOrderedShards();
+        return Arrays.stream(orderedShards).map(ManaCostShard::toShortString).collect(Collectors.joining());
     }
 
     /**
@@ -380,6 +370,10 @@ public final class ColorSet implements Comparable<ColorSet>, Iterable<Byte>, Ser
 
             return MagicColor.WUBRG[currentBit];
         }
+    }
+
+    public Stream<MagicColor.Color> stream() {
+        return this.toEnumSet().stream();
     }
 
     //Get array of mana cost shards for color set in the proper order

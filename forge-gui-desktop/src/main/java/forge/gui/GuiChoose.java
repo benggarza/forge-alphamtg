@@ -7,13 +7,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.FutureTask;
+import java.util.function.Function;
 
 import javax.swing.JList;
 import javax.swing.WindowConstants;
 
 import org.apache.commons.lang3.StringUtils;
-
-import com.google.common.base.Function;
 
 import forge.card.CardStateName;
 import forge.card.ICardFace;
@@ -135,10 +134,10 @@ public class GuiChoose {
         return getChoices(message, min, max, choices, null, null);
     }
 
-    public static <T> List<T> getChoices(final String message, final int min, final int max, final Collection<T> choices, final T selected, final Function<T, String> display) {
+    public static <T> List<T> getChoices(final String message, final int min, final int max, final Collection<T> choices, final Collection<T> selected, final Function<T, String> display) {
         return getChoices(message, min, max, choices, selected, display, null);
     }
-    public static <T> List<T> getChoices(final String message, final int min, final int max, final Collection<T> choices, final T selected, final Function<T, String> display, final CMatchUI matchUI) {
+    public static <T> List<T> getChoices(final String message, final int min, final int max, final Collection<T> choices, final Collection<T> selected, final Function<T, String> display, final CMatchUI matchUI) {
         if (choices == null || choices.isEmpty()) {
             if (min == 0) {
                 return new ArrayList<>();

@@ -117,7 +117,7 @@ public class GameSnapshot {
             for (SpellAbility sa : c.getSpellAbilities()) {
                 Player activatingPlayer = sa.getActivatingPlayer();
                 if (activatingPlayer != null && activatingPlayer.getGame() != toGame) {
-                    sa.setActivatingPlayer(findBy(toGame, activatingPlayer), true);
+                    sa.setActivatingPlayer(findBy(toGame, activatingPlayer));
                 }
             }
         }
@@ -168,10 +168,9 @@ public class GameSnapshot {
         newPlayer.setLifeGainedThisTurn(origPlayer.getLifeGainedThisTurn());
         newPlayer.setLifeStartedThisTurnWith(origPlayer.getLifeStartedThisTurnWith());
         newPlayer.setDamageReceivedThisTurn(origPlayer.getDamageReceivedThisTurn());
-        newPlayer.setActivateLoyaltyAbilityThisTurn(origPlayer.getActivateLoyaltyAbilityThisTurn());
         newPlayer.setLandsPlayedThisTurn(origPlayer.getLandsPlayedThisTurn());
         newPlayer.setCounters(Maps.newHashMap(origPlayer.getCounters()));
-        newPlayer.setBlessing(origPlayer.hasBlessing());
+        newPlayer.setBlessing(origPlayer.hasBlessing(), null);
         newPlayer.setRevolt(origPlayer.hasRevolt());
         newPlayer.setLibrarySearched(origPlayer.getLibrarySearched());
         newPlayer.setSpellsCastLastTurn(origPlayer.getSpellsCastLastTurn());
@@ -182,6 +181,7 @@ public class GameSnapshot {
         }
         newPlayer.setMaxHandSize(origPlayer.getMaxHandSize());
         newPlayer.setUnlimitedHandSize(origPlayer.isUnlimitedHandSize());
+        newPlayer.setCrankCounter(origPlayer.getCrankCounter());
         // TODO creatureAttackedThisTurn
 
         // Copy mana pool
@@ -251,7 +251,7 @@ public class GameSnapshot {
 
             // Is the SA on the stack?
             if (newSa != null) {
-                newSa.setActivatingPlayer(findBy(toGame, origSa.getActivatingPlayer()), true);
+                newSa.setActivatingPlayer(findBy(toGame, origSa.getActivatingPlayer()));
                 if (origSa.usesTargeting()) {
                     for (GameObject o : origSa.getTargets()) {
                         if (o instanceof Card) {
@@ -322,7 +322,7 @@ public class GameSnapshot {
             newCard.setLayerTimestamp(fromCard.getLayerTimestamp());
             newCard.setTapped(fromCard.isTapped());
             newCard.setFaceDown(fromCard.isFaceDown());
-            newCard.setManifested(fromCard.isManifested());
+            newCard.setManifested(fromCard.getManifestedSA());
             newCard.setSickness(fromCard.hasSickness());
             newCard.setState(fromCard.getCurrentStateName(), false);
         }

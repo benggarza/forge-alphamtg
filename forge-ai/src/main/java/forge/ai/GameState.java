@@ -13,6 +13,7 @@ import forge.card.mana.ManaAtom;
 import forge.game.Game;
 import forge.game.GameEntity;
 import forge.game.ability.AbilityFactory;
+import forge.game.ability.ApiType;
 import forge.game.ability.effects.DetachedCardEffect;
 import forge.game.card.*;
 import forge.game.card.token.TokenInfo;
@@ -61,6 +62,7 @@ public abstract class GameState {
         private int landsPlayed = 0;
         private int landsPlayedLastTurn = 0;
         private int numRingTemptedYou = 0;
+        private int speed = 0;
         private String precast = null;
         private String putOnStack = null;
         private final Map<ZoneType, String> cardTexts = new EnumMap<>(ZoneType.class);
@@ -137,6 +139,7 @@ public abstract class GameState {
             sb.append(TextUtil.concatNoSpace(prefix + "landsplayed=", String.valueOf(p.landsPlayed), "\n"));
             sb.append(TextUtil.concatNoSpace(prefix + "landsplayedlastturn=", String.valueOf(p.landsPlayedLastTurn), "\n"));
             sb.append(TextUtil.concatNoSpace(prefix + "numringtemptedyou=", String.valueOf(p.numRingTemptedYou), "\n"));
+            sb.append(TextUtil.concatNoSpace(prefix + "speed=", String.valueOf(p.speed), "\n"));
             if (!p.counters.isEmpty()) {
                 sb.append(TextUtil.concatNoSpace(prefix + "counters=", p.counters, "\n"));
             }
@@ -167,6 +170,7 @@ public abstract class GameState {
             p.counters = countersToString(player.getCounters());
             p.manaPool = processManaPool(player.getManaPool());
             p.numRingTemptedYou = player.getNumRingTemptedYou();
+            p.speed = player.getSpeed();
             playerStates.add(p);
         }
 
@@ -225,7 +229,7 @@ public abstract class GameState {
                 if (card instanceof DetachedCardEffect) {
                     continue;
                 }
-                int playerIndex = game.getPlayers().indexOf(card.getController());
+                int playerIndex = game.getPlayers().indexOf(card.getZone().getPlayer());
                 addCard(zone, playerStates.get(playerIndex).cardTexts, card);
             }
         }
@@ -436,6 +440,13 @@ public abstract class GameState {
             }
         }
 
+        if (!c.getUnlockedRooms().isEmpty()) {
+            for (CardStateName stateName : c.getUnlockedRooms()) {
+                newText.append("|UnlockedRoom:");
+                newText.append(stateName.name());
+            }
+        }
+
         cardTexts.put(zoneType, newText.toString());
     }
 
@@ -535,6 +546,8 @@ public abstract class GameState {
             getPlayerState(categoryName).landsPlayedLastTurn = Integer.parseInt(categoryValue);
         } else if (categoryName.endsWith("numringtemptedyou")) {
             getPlayerState(categoryName).numRingTemptedYou = Integer.parseInt(categoryValue);
+        } else if (categoryName.endsWith("speed")) {
+            getPlayerState(categoryName).speed = Integer.parseInt(categoryValue);
         } else if (categoryName.endsWith("play") || categoryName.endsWith("battlefield")) {
             getPlayerState(categoryName).cardTexts.put(ZoneType.Battlefield, categoryValue);
         } else if (categoryName.endsWith("hand")) {
@@ -627,6 +640,7 @@ public abstract class GameState {
         }
 
         game.getStack().setResolving(false);
+        game.getStack().unfreezeStack();
 
         // Advance to a certain phase, activating all triggered abilities
         if (advPhase != null) {
@@ -1042,7 +1056,7 @@ public abstract class GameState {
         // Unattach all permanents first
         for (Entry<Card, Integer> entry : cardToAttachId.entrySet()) {
             Card attachedTo = idToCard.get(entry.getValue());
-            attachedTo.unAttachAllCards();
+            attachedTo.unAttachAllCards(attachedTo);
         }
 
         // Attach permanents by ID
@@ -1125,7 +1139,7 @@ public abstract class GameState {
             p.getZone(zt).removeAllCards(true);
         }
 
-        p.setCommanders(Lists.newArrayList());
+        p.getCommanders().clear();
         p.clearTheRing();
 
         Map<ZoneType, CardCollectionView> playerCards = new EnumMap<>(ZoneType.class);
@@ -1138,6 +1152,7 @@ public abstract class GameState {
         p.setLandsPlayedThisTurn(state.landsPlayed);
         p.setLandsPlayedLastTurn(state.landsPlayedLastTurn);
         p.setNumRingTemptedYou(state.numRingTemptedYou);
+        p.setSpeed(state.speed);
 
         p.clearPaidForSA();
 
@@ -1200,6 +1215,7 @@ public abstract class GameState {
                 p.setRingLevel(i);
             }
         }
+        if (state.speed > 0) p.createSpeedEffect();
     }
 
     /**
@@ -1290,10 +1306,10 @@ public abstract class GameState {
                 } else if (info.startsWith("FaceDown")) {
                     c.turnFaceDown(true);
                     if (info.endsWith("Manifested")) {
-                        c.setManifested(true);
+                        c.setManifested(new SpellAbility.EmptySa(ApiType.Manifest, c));
                     }
                     if (info.endsWith("Cloaked")) {
-                        c.setCloaked(true);
+                        c.setCloaked(new SpellAbility.EmptySa(ApiType.Cloak, c));
                     }
                 } else if (info.startsWith("Transformed")) {
                     c.setState(CardStateName.Transformed, true);
@@ -1393,13 +1409,15 @@ public abstract class GameState {
                 } else if (info.equals("Foretold")) {
                     c.setForetold(true);
                     c.turnFaceDown(true);
-                    c.addMayLookTemp(c.getOwner());
+                    c.addMayLookFaceDownExile(c.getOwner());
                 } else if (info.equals("ForetoldThisTurn")) {
                     c.setTurnInZone(turn);
                 } else if (info.equals("IsToken")) {
                     c.setGamePieceType(GamePieceType.TOKEN);
-                } else if (info.equals("ClassLevel:")) {
+                } else if (info.startsWith("ClassLevel:")) {
                     c.setClassLevel(Integer.parseInt(info.substring(info.indexOf(':') + 1)));
+                } else if (info.startsWith("UnlockedRoom:")) {
+                    c.unlockRoom(c.getController(), CardStateName.smartValueOf(info.substring(info.indexOf(':') + 1)));
                 }
             }
 

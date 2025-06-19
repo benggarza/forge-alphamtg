@@ -21,13 +21,11 @@ package forge.toolbox;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 import com.badlogic.gdx.Input;
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 
 import forge.Forge;
 import forge.Graphics;
@@ -40,8 +38,7 @@ import forge.itemmanager.filters.ItemFilter;
 import forge.itemmanager.filters.ListLabelFilter;
 import forge.menu.FMenuItem;
 import forge.menu.FPopupMenu;
-import forge.util.Callback;
-import forge.util.Utils;
+import forge.util.*;
 
 /**
  * A simple class that shows a list of choices in a dialog. Two properties
@@ -176,7 +173,7 @@ public class ListChooser<T> extends FContainer {
             lstChoices.setListData(list);
         }
         else {
-            lstChoices.setListData(Iterables.filter(list, Predicates.and(predicates)));
+            lstChoices.setListData(IterableUtil.filter(list, IterableUtil.<T>and(predicates)));
         }
 
         if (!lstChoices.isEmpty() && lstChoices.getMaxChoices() > 0) {
@@ -204,11 +201,8 @@ public class ListChooser<T> extends FContainer {
 
     /**
      * Shows the dialog and returns after the dialog was closed.
-     *
-     * @param index0 index to select when shown
-     * @return a boolean.
      */
-    public void show(final T item, final boolean selectMax) {
+    public void show(final Collection<T> item, final boolean selectMax) {
         if (called) {
             throw new IllegalStateException("Already shown");
         }
@@ -229,7 +223,7 @@ public class ListChooser<T> extends FContainer {
             }
         }
         else {
-            lstChoices.setSelectedItem(item);
+            lstChoices.setSelectedItems(item);
         }
         optionPane.show();
     }

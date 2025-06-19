@@ -26,6 +26,7 @@ import forge.game.ability.AbilityFactory;
 import forge.game.ability.AbilityUtils;
 import forge.game.ability.ApiType;
 import forge.game.ability.SpellAbilityEffect;
+import forge.game.ability.effects.DetachedCardEffect;
 import forge.game.card.*;
 import forge.game.card.CardPlayOption.PayManaCost;
 import forge.game.cost.Cost;
@@ -34,6 +35,7 @@ import forge.game.keyword.KeywordInterface;
 import forge.game.player.Player;
 import forge.game.player.PlayerCollection;
 import forge.game.player.PlayerController;
+import forge.game.player.PlayerController.FullControlFlag;
 import forge.game.replacement.ReplacementEffect;
 import forge.game.replacement.ReplacementHandler;
 import forge.game.replacement.ReplacementLayer;
@@ -41,6 +43,7 @@ import forge.game.spellability.*;
 import forge.game.staticability.StaticAbility;
 import forge.game.staticability.StaticAbilityAlternativeCost;
 import forge.game.staticability.StaticAbilityLayer;
+import forge.game.staticability.StaticAbilityMode;
 import forge.game.zone.Zone;
 import forge.game.zone.ZoneType;
 import forge.util.Aggregates;
@@ -48,7 +51,6 @@ import forge.util.Lang;
 import forge.util.TextUtil;
 import org.apache.commons.lang3.StringUtils;
 
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -122,7 +124,7 @@ public final class GameActionUtil {
 
             // need to be done there before static abilities does reset the card
             // These Keywords depend on the Mana Cost of for Split Cards
-            if (sa.isBasicSpell()) {
+            if (sa.isBasicSpell() && !sa.isLandAbility()) {
                 for (final KeywordInterface inst : source.getKeywords()) {
                     final String keyword = inst.getOriginal();
 
@@ -182,6 +184,34 @@ public final class GameActionUtil {
                         flashback.setKeyword(inst);
                         flashback.setIntrinsic(inst.isIntrinsic());
                         alternatives.add(flashback);
+                    } else if (keyword.startsWith("Harmonize")) {
+                        if (!source.isInZone(ZoneType.Graveyard)) {
+                            continue;
+                        }
+
+                        if (keyword.equals("Harmonize") && source.getManaCost().isNoCost()) {
+                            continue;
+                        }
+
+                        SpellAbility harmonize = null;
+
+                        if (keyword.contains(":")) {
+                            final String[] k = keyword.split(":");
+                            harmonize = sa.copyWithManaCostReplaced(activator, new Cost(k[1], false));
+                            String extraParams =  k.length > 2 ? k[2] : "";
+                            if (!extraParams.isEmpty()) {
+                                for (Map.Entry<String, String> param : AbilityFactory.getMapParams(extraParams).entrySet()) {
+                                    harmonize.putParam(param.getKey(), param.getValue());
+                                }
+                            }
+                        } else {
+                            harmonize = sa.copy(activator);
+                        }
+                        harmonize.setAlternativeCost(AlternativeCost.Harmonize);
+                        harmonize.getRestrictions().setZone(ZoneType.Graveyard);
+                        harmonize.setKeyword(inst);
+                        harmonize.setIntrinsic(inst.isIntrinsic());
+                        alternatives.add(harmonize);
                     } else if (keyword.startsWith("Foretell")) {
                         // Foretell cast only from Exile
                         if (!source.isInZone(ZoneType.Exile) || !source.isForetold() || source.enteredThisTurn() ||
@@ -339,7 +369,7 @@ public final class GameActionUtil {
             newSA.setMayPlay(o);
 
             final StringBuilder sb = new StringBuilder(sa.getDescription());
-            if (!source.equals(host) && host.getCardForUi() != null) {
+            if (!source.equals(host) && host.getRenderForUI()) {
                 sb.append(" by ");
                 if (host.isImmutable() && host.getEffectSource() != null) {
                     sb.append(host.getEffectSource());
@@ -389,7 +419,7 @@ public final class GameActionUtil {
         costSources.addAll(game.getCardsIn(ZoneType.STATIC_ABILITIES_SOURCE_ZONES));
         for (final Card ca : costSources) {
             for (final StaticAbility stAb : ca.getStaticAbilities()) {
-                if (!stAb.checkConditions("OptionalCost")) {
+                if (!stAb.checkConditions(StaticAbilityMode.OptionalCost)) {
                     continue;
                 }
 
@@ -523,7 +553,7 @@ public final class GameActionUtil {
 
                         final Cost cost = new Cost(s, false);
                         newSA.setDescription(sa.getDescription() + " (Additional cost: " + cost.toSimpleString() + ")");
-                        newSA.setPayCosts(cost.add(sa.getPayCosts()));
+                        newSA.getPayCosts().add(cost);
                         if (newSA.canPlay()) {
                             abilities.add(newSA);
                         }
@@ -581,9 +611,8 @@ public final class GameActionUtil {
                         " or greater>";
                 final Cost cost = new Cost(casualtyCost, false);
                 String str = "Pay for Casualty? " + cost.toSimpleString();
-                boolean v = pc.addKeywordCost(sa, cost, ki, str);
 
-                if (v) {
+                if (pc.addKeywordCost(sa, cost, ki, str)) {
                     if (result == null) {
                         result = sa.copy();
                     }
@@ -629,9 +658,7 @@ public final class GameActionUtil {
                 final Cost cost = new Cost(k[1], false);
                 String str = "Pay for Offspring? " + cost.toSimpleString();
 
-                boolean v = pc.addKeywordCost(sa, cost, ki, str);
-
-                if (v) {
+                if (pc.addKeywordCost(sa, cost, ki, str)) {
                     if (result == null) {
                         result = sa.copy();
                     }
@@ -678,6 +705,25 @@ public final class GameActionUtil {
             }
         }
 
+        if (sa.isHarmonize()) {
+            CardCollectionView creatures = activator.getCreaturesInPlay();
+            if (!creatures.isEmpty()) {
+                int max = Aggregates.max(creatures, Card::getNetPower);
+                int n = pc.chooseNumber(sa, "Choose power of creature to tap", 0, max);
+                final String harmonizeCost = "tapXType<1/Creature.powerEQ" + n + "/creature for Harmonize>";
+                final Cost cost = new Cost(harmonizeCost, false);
+
+                if (pc.addKeywordCost(sa, cost, sa.getKeyword(), "Tap creature?")) {
+                    if (result == null) {
+                        result = sa.copy();
+                    }
+                    result.getPayCosts().add(cost);
+                    reset = true;
+                    result.setOptionalKeywordAmount(sa.getKeyword(), n);
+                }
+            }
+        }
+
         if (host.isCreature()) {
             String kw = "As an additional cost to cast creature spells," +
                     " you may pay any amount of mana. If you do, that creature enters " +
@@ -712,7 +758,15 @@ public final class GameActionUtil {
             host.getGame().getTriggerHandler().resetActiveTriggers(false);
         }
 
-        return result != null ? result : sa;
+        if (result != null) {
+            // sanity check if need to update castSA
+            if (sa.getHostCard().getCastSA() == sa) {
+                sa.getHostCard().setCastSA(result);
+            }
+            return result;
+        }
+
+        return sa;
     }
 
     public static Card createETBCountersEffect(Card sourceCard, Card c, Player controller, String counter, String amount) {
@@ -828,16 +882,14 @@ public final class GameActionUtil {
     }
 
     public static CardCollectionView orderCardsByTheirOwners(Game game, CardCollectionView list, ZoneType dest, SpellAbility sa) {
-        if (list.size() <= 1) {
+        if (list.size() <= 1 &&
+                (sa == null || !sa.getActivatingPlayer().getController().isFullControl(FullControlFlag.LayerTimestampOrder))) {
             return list;
         }
+        Card eff = null;
         CardCollection completeList = new CardCollection();
-        PlayerCollection players = new PlayerCollection(game.getPlayers());
         // CR 613.7m use APNAP
-        int indexAP = players.indexOf(game.getPhaseHandler().getPlayerTurn());
-        if (indexAP != -1) {
-            Collections.rotate(players, - indexAP);
-        }
+        PlayerCollection players = game.getPlayersInTurnOrder(game.getPhaseHandler().getPlayerTurn());
         for (Player p : players) {
             CardCollection subList = new CardCollection();
             for (Card c : list) {
@@ -850,11 +902,27 @@ public final class GameActionUtil {
                     subList.add(c);
                 }
             }
+            if (sa != null && sa.getActivatingPlayer() == p && sa.hasParam("StaticEffect")) {
+                // create helper card for ordering
+                eff = new DetachedCardEffect(sa.getHostCard(), "Static Effect of " + sa.getHostCard());
+                subList.add(eff);
+            }
             CardCollectionView subListView = subList;
             if (subList.size() > 1) {
                 subListView = p.getController().orderMoveToZoneList(subList, dest, sa);
             }
             completeList.addAll(subListView);
+        }
+        if (eff != null) {
+            int idx = completeList.indexOf(eff);
+            if (idx < completeList.size() - 1) {
+                // effects with this param have the responsibility to realign it when later cards are reached
+                sa.setSVar("StaticEffectUntilCardID", String.valueOf(completeList.get(idx + 1).getId()));
+                // add generous offset to timestamp, to ensure it applies last compared to cards that were ordered to ETB before it
+                idx += completeList.size() * 2;
+            }
+            sa.setSVar("StaticEffectTimestamp", String.valueOf(game.getNextTimestamp() + idx));
+            completeList.remove(eff);
         }
         return completeList;
     }
@@ -879,14 +947,16 @@ public final class GameActionUtil {
         }
 
         if (fromZone != null && !fromZone.is(ZoneType.None)) { // and not a copy
+            // add back to where it came from, hopefully old state
+            // skip GameAction
+            oldCard.getZone().remove(oldCard);
+
             // might have been an alternative lki host
             oldCard = ability.getCardState().getCard();
 
             oldCard.setCastSA(null);
             oldCard.setCastFrom(null);
-            // add back to where it came from, hopefully old state
-            // skip GameAction
-            oldCard.getZone().remove(oldCard);
+
             // in some rare cases the old position no longer exists (Panglacial Wurm + Selvala)
             Integer newPosition = zonePosition >= 0 ? Math.min(zonePosition, fromZone.size()) : null;
             fromZone.add(oldCard, newPosition, null, true);

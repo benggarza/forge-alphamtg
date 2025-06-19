@@ -2,15 +2,14 @@ package forge.game.ability.effects;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Predicate;
 
 import forge.card.GamePieceType;
-import forge.util.Lang;
+import forge.item.PaperCardPredicates;
+import forge.util.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import forge.ImageKeys;
@@ -33,10 +32,6 @@ import forge.game.player.PlayerActionConfirmMode;
 import forge.game.spellability.SpellAbility;
 import forge.game.zone.ZoneType;
 import forge.item.PaperCard;
-import forge.util.Aggregates;
-import forge.util.Localizer;
-import forge.util.PredicateString.StringOp;
-import forge.util.TextUtil;
 
 public class CopyPermanentEffect extends TokenEffectBase {
 
@@ -154,19 +149,18 @@ public class CopyPermanentEffect extends TokenEffectBase {
             List<Card> tgtCards = Lists.newArrayList();
 
             if (sa.hasParam("ValidSupportedCopy")) {
-                List<PaperCard> cards = Lists.newArrayList(StaticData.instance().getCommonCards().getUniqueCards());
+                Iterable<PaperCard> cards = StaticData.instance().getCommonCards().getUniqueCards();
                 String valid = sa.getParam("ValidSupportedCopy");
                 if (valid.contains("X")) {
                     valid = TextUtil.fastReplace(valid,
                             "X", Integer.toString(AbilityUtils.calculateAmount(host, "X", sa)));
                 }
                 if (StringUtils.containsIgnoreCase(valid, "creature")) {
-                    Predicate<PaperCard> cpp = Predicates.compose(CardRulesPredicates.Presets.IS_CREATURE, PaperCard::getRules);
-                    cards = Lists.newArrayList(Iterables.filter(cards, cpp));
+                    cards = IterableUtil.filter(cards, PaperCardPredicates.IS_CREATURE);
                 }
                 if (StringUtils.containsIgnoreCase(valid, "equipment")) {
-                    Predicate<PaperCard> cpp = Predicates.compose(CardRulesPredicates.Presets.IS_EQUIPMENT, PaperCard::getRules);
-                    cards = Lists.newArrayList(Iterables.filter(cards, cpp));
+                    Predicate<PaperCard> cpp = PaperCardPredicates.fromRules(CardRulesPredicates.IS_EQUIPMENT);
+                    cards = IterableUtil.filter(cards, cpp);
                 }
                 if (sa.hasParam("RandomCopied")) {
                     List<PaperCard> copysource = Lists.newArrayList(cards);
@@ -190,19 +184,15 @@ public class CopyPermanentEffect extends TokenEffectBase {
                     System.err.println("Copying random permanent(s): " + tgtCards.toString());
                 }
             } else if (sa.hasParam("DefinedName")) {
-                List<PaperCard> cards = Lists.newArrayList(StaticData.instance().getCommonCards().getUniqueCards());
                 String name = sa.getParam("DefinedName");
                 if (name.equals("NamedCard")) {
                     if (!host.getNamedCard().isEmpty()) {
                         name = host.getNamedCard();
                     }
                 }
-
-                Predicate<PaperCard> cpp = Predicates.compose(CardRulesPredicates.name(StringOp.EQUALS, name), PaperCard::getRules);
-                cards = Lists.newArrayList(Iterables.filter(cards, cpp));
-
-                if (!cards.isEmpty()) {
-                    tgtCards.add(Card.fromPaperCard(cards.get(0), controller));
+                PaperCard pc = StaticData.instance().getCommonCards().getUniqueByName(name);
+                if (pc != null) {
+                    tgtCards.add(Card.fromPaperCard(pc, controller));
                 }
             } else if (sa.hasParam("Choices")) {
                 Player chooser = activator;
@@ -224,7 +214,7 @@ public class CopyPermanentEffect extends TokenEffectBase {
 
                             if (choosen != null) {
                                 tgtCards.add(choosen);
-                                choices = CardLists.filter(choices, Predicates.not(CardPredicates.sharesNameWith(choosen)));
+                                choices = CardLists.filter(choices, CardPredicates.sharesNameWith(choosen).negate());
                             } else if (chooser.getController().confirmAction(sa, PlayerActionConfirmMode.OptionalChoose, Localizer.getInstance().getMessage("lblCancelChooseConfirm"), null)) {
                                 break;
                             }
@@ -258,6 +248,10 @@ public class CopyPermanentEffect extends TokenEffectBase {
 
                 if (sa.hasParam("ForEach")) {
                     for (Player p : AbilityUtils.getDefinedPlayers(host, sa.getParam("ForEach"), sa)) {
+                        if (sa.hasParam("OptionalForEach") && !activator.getController().confirmAction(sa, null,
+                                Localizer.getInstance().getMessage("lblCopyPermanentConfirm") + " (" + p + ")", null)) {
+                            continue;
+                        }
                         Card proto = getProtoType(sa, c, controller);
                         proto.addRemembered(p);
                         tokenTable.put(controller, proto, numCopies);
@@ -314,6 +308,8 @@ public class CopyPermanentEffect extends TokenEffectBase {
                 copy.setState(copy.getCurrentStateName(), true, true);
             }
         }
+        // spire
+        copy.setMarkedColors(original.getMarkedColors());
 
         copy.setTokenSpawningAbility(sa);
         copy.setGamePieceType(GamePieceType.TOKEN);

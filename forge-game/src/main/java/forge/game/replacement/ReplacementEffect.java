@@ -35,6 +35,7 @@ import forge.game.ability.ApiType;
 import forge.game.card.Card;
 import forge.game.card.CardCollectionView;
 import forge.game.phase.PhaseType;
+import forge.game.player.Player;
 import forge.game.spellability.SpellAbility;
 import forge.game.zone.ZoneType;
 import forge.util.CardTranslation;
@@ -60,6 +61,7 @@ public abstract class ReplacementEffect extends TriggerReplacementBase {
     private boolean hasRun = false;
 
     private List<ReplacementEffect> otherChoices = null;
+    private ReplacementEffectView view = null;
 
     /**
      * Gets the id.
@@ -109,6 +111,15 @@ public abstract class ReplacementEffect extends TriggerReplacementBase {
         }
     }
 
+    public ReplacementEffectView getView() {
+        if (view == null)
+            view = new ReplacementEffectView(this);
+        else {
+            view.updateHostCard(this);
+            view.updateDescription(this);
+        }
+        return view;
+    }
     /**
      * Sets the checks for run.
      *
@@ -144,37 +155,44 @@ public abstract class ReplacementEffect extends TriggerReplacementBase {
      * @return a boolean.
      */
     public boolean requirementsCheck(Game game) {
-        return this.requirementsCheck(game, this.getMapParams());
-    }
-    public boolean requirementsCheck(Game game, Map<String,String> params) {
         if (this.isSuppressed()) {
             return false; // Effect removed by effect
         }
 
-        if (params.containsKey("PlayerTurn")) {
-            if (params.get("PlayerTurn").equals("True") && !game.getPhaseHandler().isPlayerTurn(this.getHostCard().getController())) {
+        if (hasParam("PlayerTurn")) {
+            if (getParam("PlayerTurn").equals("True")) {
+                if (!game.getPhaseHandler().isPlayerTurn(getHostCard().getController())) {
+                    return false;
+                }
+            } else {
+                List<Player> players = AbilityUtils.getDefinedPlayers(getHostCard(), getParam("PlayerTurn"), this);
+                if (!players.contains(game.getPhaseHandler().getPlayerTurn())) {
+                    return false;
+                }
+            }
+        }
+
+        if (hasParam("ActivePhases")) {
+            if (!PhaseType.parseRange(getParam("ActivePhases")).contains(game.getPhaseHandler().getPhase())) {
                 return false;
             }
         }
 
-        if (params.containsKey("ActivePhases")) {
-            if (!PhaseType.parseRange(params.get("ActivePhases")).contains(game.getPhaseHandler().getPhase())) {
-                return false;
-            }
-        }
-
-        return meetsCommonRequirements(params);
+        return meetsCommonRequirements(getMapParams());
     }
 
+    public final ReplacementEffect copy(Card newHost, boolean lki) {
+        return copy(newHost, lki, false);
+    }
     /**
      * Gets the copy.
      *
      * @return the copy
      */
-    public final ReplacementEffect copy(final Card host, final boolean lki) {
+    public final ReplacementEffect copy(final Card host, final boolean lki, boolean keepTextChanges) {
         final ReplacementEffect res = (ReplacementEffect) clone();
 
-        copyHelper(res, host);
+        copyHelper(res, host, lki || keepTextChanges);
 
         final SpellAbility sa = this.getOverridingAbility();
         if (sa != null) {

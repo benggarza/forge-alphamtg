@@ -1,7 +1,5 @@
 package forge.game;
 
-import com.google.common.collect.Iterables;
-
 import forge.card.CardTypeView;
 import forge.card.ColorSet;
 import forge.card.MagicColor;
@@ -17,7 +15,6 @@ import forge.game.mana.Mana;
 import forge.game.mana.ManaCostBeingPaid;
 import forge.game.player.Player;
 import forge.game.spellability.SpellAbility;
-import forge.game.spellability.SpellAbilityPredicates;
 import forge.game.spellability.TargetChoices;
 import forge.game.staticability.StaticAbility;
 import forge.game.staticability.StaticAbilityCastWithFlash;
@@ -125,29 +122,16 @@ public class ForgeScript {
                 }
             }
             return found;
-        } else if (property.equals("hasActivatedAbilityWithTapCost")) {
+        } else if (property.startsWith("hasAbility")) {
+            String valid = property.substring(11);
             for (final SpellAbility sa : cardState.getSpellAbilities()) {
-                if (sa.isActivatedAbility() && sa.getPayCosts().hasTapCost()) {
-                    return true;
-                }
-            }
-            return false;
-        } else if (property.equals("hasActivatedAbility")) {
-            for (final SpellAbility sa : cardState.getSpellAbilities()) {
-                if (sa.isActivatedAbility()) {
-                    return true;
-                }
-            }
-            return false;
-        } else if (property.equals("hasOtherActivatedAbility")) {
-            for (final SpellAbility sa : cardState.getSpellAbilities()) {
-                if (sa.isActivatedAbility() && !sa.equals(spellAbility)) {
+                if (sa.isValid(valid, sourceController, source, spellAbility)) {
                     return true;
                 }
             }
             return false;
         } else if (property.equals("hasManaAbility")) {
-            if (Iterables.any(cardState.getSpellAbilities(), SpellAbilityPredicates.isManaAbility())) {
+            if (!cardState.getManaAbilities().isEmpty()) {
                 return true;
             }
             for (final Trigger trig : cardState.getTriggers()) {
@@ -207,6 +191,8 @@ public class ForgeScript {
             return sa.isCraft();
         } else if (property.equals("Crew")) {
             return sa.isCrew();
+        } else if (property.equals("Saddle")) {
+            return sa.isKeyword(Keyword.SADDLE);
         } else if (property.equals("Cycling")) {
             return sa.isCycling();
         } else if (property.equals("Dash")) {
@@ -219,6 +205,8 @@ public class ForgeScript {
             return sa.isEternalize();
         } else if (property.equals("Flashback")) {
             return sa.isFlashback();
+        } else if (property.equals("Harmonize")) {
+            return sa.isHarmonize();
         } else if (property.equals("Jumpstart")) {
             return sa.isJumpstart();
         } else if (property.equals("Kicked")) {
@@ -237,12 +225,16 @@ public class ForgeScript {
             return sa.isTurnFaceUp();
         } else if (property.equals("isCastFaceDown")) {
             return sa.isCastFaceDown();
+        } else if (property.equals("Unearth")) {
+            return sa.isKeyword(Keyword.UNEARTH);
         } else if (property.equals("Modular")) {
             return sa.isKeyword(Keyword.MODULAR);
         } else if (property.equals("Equip")) {
             return sa.isEquip();
         } else if (property.equals("Boast")) {
             return sa.isBoast();
+        } else if (property.equals("Exhaust")) {
+            return sa.isExhaust();
         } else if (property.equals("Mutate")) {
             return sa.isMutate();
         } else if (property.equals("Ninjutsu")) {
@@ -377,7 +369,7 @@ public class ForgeScript {
             if (sa.isManaAbilityFor(paidFor, colorCanUse)) {
                 return false;
             }
-        } else if(property.equals("NamedSpell")) {
+        } else if (property.equals("NamedSpell")) {
             boolean found = false;
             for (String name : source.getNamedCards()) {
                 if (sa.cardState.getName().equals(name)) {

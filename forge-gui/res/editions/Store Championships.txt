@@ -28,10 +28,22 @@ ScryfallCode=SCH
 20 R Lier, Disciple of the Drowned @Heonhwa Choe
 21 R Mortify @Andreia Ugrai
 22 R Angel of Despair @Andreia Ugrai
-23 R Dauthi Voidwalker @Andreia Ugrai
+23e R Dauthi Voidwalker @Andreia Ugrai
 24 R Blazing Rootwalla @Brian Valeza
 25 R Hollow One @Adam Volker
 26 R Vengevine @Brian Valeza
 27 R Monastery Swiftspear @Francisco Miyara
 28 R Shark Typhoon @Carlos Palma Cruchaga
 29 R Urza's Saga @Eytan Zana
+30 R Chromatic Sphere @Lorenzo Lanfranconi
+31 R Reality Smasher @Michal Ivan
+32 R Void Winnower @Joshua Raphael
+33 R Deep-Cavern Bat @Maxime Minard
+34 R Preacher of the Schism @Zara Alfonso
+35 M Virtue of Persistence @Lorenzo Lanfranconi
+36 R Gleeful Demolition @Vincent Proce
+37 R Charming Scoundrel @Fabira Khamesh
+38 R Goddric, Cloaked Reveler @Irvin Rodriguez
+39 R Preordain @Toshiaki Takayama
+40 R Death's Shadow @Nottsuo
+41 R City of Brass @Yo Shimizu

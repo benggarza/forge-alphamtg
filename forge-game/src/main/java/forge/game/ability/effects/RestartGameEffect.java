@@ -29,7 +29,7 @@ public class RestartGameEffect extends SpellAbilityEffect {
         List<ZoneType> restartZones = new ArrayList<>(Arrays.asList(ZoneType.Battlefield,
                 ZoneType.Library, ZoneType.Graveyard, ZoneType.Hand, ZoneType.Exile));
 
-        ZoneType leaveZone = ZoneType.smartValueOf(sa.hasParam("RestrictFromZone") ? sa.getParam("RestrictFromZone") : null);
+        ZoneType leaveZone = ZoneType.smartValueOf(sa.getParam("RestrictFromZone"));
         restartZones.remove(leaveZone);
         String leaveRestriction = sa.getParamOrDefault("RestrictFromValid", "Card");
 
@@ -71,7 +71,7 @@ public class RestartGameEffect extends SpellAbilityEffect {
             p.resetRingTemptedYou();
             p.clearRingBearer();
             p.clearTheRing();
-            p.setBlessing(false);
+            p.setBlessing(false, null);
             p.clearController();
 
             CardCollection newLibrary = new CardCollection(p.getCardsIn(restartZones, false));

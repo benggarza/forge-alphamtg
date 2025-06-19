@@ -180,7 +180,7 @@ public class InventoryScene extends UIScene {
         Deck data = (deckLocation.get(selected));
         if (data == null) return;
 
-        done();
+        //done();
         setSelected(null);
         RewardScene.instance().loadRewards(data, RewardScene.Type.Loot, null, data.getTags().contains("noSell"));
         Forge.switchScene(RewardScene.instance());
@@ -206,15 +206,7 @@ public class InventoryScene extends UIScene {
             Deck data = deckLocation.get(selected);
             if (data == null)
                 return;
-            if (openDialog == null) {
-                openDialog = createGenericDialog("", null, Forge.getLocalizer().getMessage("lblYes"),
-                        Forge.getLocalizer().getMessage("lblNo"), () -> {
-                            this.openBooster();
-                            removeDialog();
-                        }, this::removeDialog);
-                openDialog.getContentTable().add(Controls.newTextraLabel("Open Booster Pack?"));
-            }
-            showDialog(openDialog);
+            this.openBooster();
         }
     }
 
@@ -277,7 +269,7 @@ public class InventoryScene extends UIScene {
             useButton.layout();
             equipButton.setDisabled(true);
 
-            itemDescription.setText("Card Pack - " + data.getName() + "\n[%98]" + (data.getComment() == null?"":data.getComment()+" - ") + data.getAllCardsInASinglePool().countAll() + " cards");
+            itemDescription.setText(data.getName() + "\n[%98]" + (data.getComment() == null?"":data.getComment()+" - ") + data.getAllCardsInASinglePool().countAll() + " cards");
         }
 
 
@@ -294,12 +286,44 @@ public class InventoryScene extends UIScene {
         clearSelectable();
         inventoryButtons.clear();
         inventory.clear();
-        Current.player().getItems().sort();
 
         int itemSlotsUsed = 0;
+        // Turn item strings into actual ItemData
+        // THen sort but these by slot type and name
 
+        Array<ItemData> items = new Array<>();
         for (int i = 0; i < Current.player().getItems().size; i++) {
+            String name = Current.player().getItems().get(i);
+            ItemData item = ItemData.getItem(name);
+            if (item == null) {
+                System.err.print("Can not find item name " + name + "\n");
+                continue;
+            }
+            if (item.sprite() == null) {
+                System.err.print("Can not find sprite name " + item.iconName + "\n");
+                continue;
+            }
 
+            items.add(item);
+        }
+        items.sort((o1, o2) -> {
+            if (o1.equipmentSlot == null && o2.equipmentSlot == null) {
+                return o1.name.compareTo(o2.name);
+            } else if (o1.equipmentSlot == null) {
+                return 1;
+            } else if (o2.equipmentSlot == null) {
+                return -1;
+            } else {
+                int slotCompare = o1.equipmentSlot.compareTo(o2.equipmentSlot);
+                if (slotCompare != 0) {
+                    return slotCompare;
+                }
+                return o1.name.compareTo(o2.name);
+            }
+        });
+
+
+        for (int i = 0; i < items.size; i++) {
             if (i % columns == 0)
                 inventory.row();
             Button newActor = createInventorySlot();
@@ -312,20 +336,13 @@ public class InventoryScene extends UIScene {
                 }
             });
             inventoryButtons.add(newActor);
-            ItemData item = ItemData.getItem(Current.player().getItems().get(i));
-            if (item == null) {
-                System.err.print("Can not find item name " + Current.player().getItems().get(i) + "\n");
-                continue;
-            }
-            if (item.sprite() == null) {
-                System.err.print("Can not find sprite name " + item.iconName + "\n");
-                continue;
-            }
+
+            ItemData item = items.get(i);
             Image img = new Image(item.sprite());
             img.setX((newActor.getWidth() - img.getWidth()) / 2);
             img.setY((newActor.getHeight() - img.getHeight()) / 2);
             newActor.addActor(img);
-            itemLocation.put(newActor, Current.player().getItems().get(i));
+            itemLocation.put(newActor, item.name);
             if (Current.player().getEquippedItems().contains(item.name)) {
                 Image overlay = new Image(equipOverlay);
                 overlay.setX((newActor.getWidth() - img.getWidth()) / 2);

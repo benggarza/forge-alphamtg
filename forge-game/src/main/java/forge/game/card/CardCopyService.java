@@ -119,7 +119,7 @@ public class CardCopyService {
         c.setSetCode(in.getSetCode());
 
         for (final CardStateName state : in.getStates()) {
-            copyState(in, state, c, state);
+            copyState(in, state, c, state, false);
         }
 
         c.setState(in.getCurrentStateName(), false);
@@ -214,8 +214,8 @@ public class CardCopyService {
         if (cachedCard != null) {
             return cachedCard;
         }
-        String msg = "CardUtil:getLKICopy copy object";
 
+        String msg = "CardUtil:getLKICopy copy object";
         Breadcrumb bread = new Breadcrumb(msg);
         bread.setData("Card", copyFrom.getName());
         bread.setData("CardState", copyFrom.getCurrentStateName().toString());
@@ -252,10 +252,10 @@ public class CardCopyService {
             newCopy.getState(CardStateName.Original).copyFrom(copyFrom.getState(CardStateName.Original), true);
             newCopy.addAlternateState(CardStateName.Transformed, false);
             newCopy.getState(CardStateName.Transformed).copyFrom(copyFrom.getState(CardStateName.Transformed), true);
-        } else if (copyFrom.isAdventureCard()) {
+        } else if (copyFrom.hasState(CardStateName.Secondary)) {
             newCopy.getState(CardStateName.Original).copyFrom(copyFrom.getState(CardStateName.Original), true);
-            newCopy.addAlternateState(CardStateName.Adventure, false);
-            newCopy.getState(CardStateName.Adventure).copyFrom(copyFrom.getState(CardStateName.Adventure), true);
+            newCopy.addAlternateState(CardStateName.Secondary, false);
+            newCopy.getState(CardStateName.Secondary).copyFrom(copyFrom.getState(CardStateName.Secondary), true);
         } else if (copyFrom.isSplitCard()) {
             newCopy.getState(CardStateName.Original).copyFrom(copyFrom.getState(CardStateName.Original), true);
             newCopy.addAlternateState(CardStateName.LeftSplit, false);
@@ -304,19 +304,20 @@ public class CardCopyService {
 
         newCopy.setCounters(Maps.newHashMap(copyFrom.getCounters()));
 
+        newCopy.setColor(copyFrom.getColor().getColor());
+        newCopy.setPhasedOut(copyFrom.getPhasedOut());
+        newCopy.setTapped(copyFrom.isTapped());
         newCopy.setTributed(copyFrom.isTributed());
+        newCopy.setUnearthed(copyFrom.isUnearthed());
         newCopy.setMonstrous(copyFrom.isMonstrous());
         newCopy.setRenowned(copyFrom.isRenowned());
         newCopy.setSolved(copyFrom.isSolved());
-        newCopy.setSaddled(copyFrom.isSaddled());
         newCopy.setPromisedGift(copyFrom.getPromisedGift());
+        newCopy.setSaddled(copyFrom.isSaddled());
         if (newCopy.isSaddled()) newCopy.setSaddledByThisTurn(copyFrom.getSaddledByThisTurn());
-        newCopy.setSuspectedTimestamp(copyFrom.getSuspectedTimestamp());
-
-        newCopy.setColor(copyFrom.getColor().getColor());
-        newCopy.setPhasedOut(copyFrom.getPhasedOut());
-
-        newCopy.setTapped(copyFrom.isTapped());
+        if (copyFrom.isSuspected()) {
+            newCopy.setSuspectedEffect(getLKICopy(copyFrom.getSuspectedEffect(), cachedMap));
+        }
 
         newCopy.setDamageHistory(copyFrom.getDamageHistory());
         newCopy.setDamageReceivedThisTurn(copyFrom.getDamageReceivedThisTurn());
@@ -352,31 +353,24 @@ public class CardCopyService {
         }
         newCopy.setChosenEvenOdd(copyFrom.getChosenEvenOdd());
 
-        //newCopy.getEtbCounters().putAll(copyFrom.getEtbCounters());
-
-        newCopy.setUnearthed(copyFrom.isUnearthed());
-
-        newCopy.setChangedCardColors(copyFrom.getChangedCardColorsTable());
-        newCopy.setChangedCardColorsCharacterDefining(copyFrom.getChangedCardColorsCharacterDefiningTable());
-        newCopy.setChangedCardKeywords(copyFrom.getChangedCardKeywords());
-        newCopy.setChangedCardTypes(copyFrom.getChangedCardTypesTable());
-        newCopy.setChangedCardTypesCharacterDefining(copyFrom.getChangedCardTypesCharacterDefiningTable());
-        newCopy.setChangedCardNames(copyFrom.getChangedCardNames());
-        newCopy.setChangedCardTraits(copyFrom.getChangedCardTraits());
+        newCopy.copyFrom(copyFrom);
 
         // for getReplacementList (run after setChangedCardKeywords for caching)
         newCopy.setStoredKeywords(copyFrom.getStoredKeywords(), true);
         newCopy.setStoredReplacements(copyFrom.getStoredReplacements());
 
         newCopy.copyChangedTextFrom(copyFrom);
+        newCopy.changedTypeByText = copyFrom.changedTypeByText;
+        newCopy.changedCardKeywordsByWord = copyFrom.changedCardKeywordsByWord.copy(newCopy, true);
 
         newCopy.setGameTimestamp(copyFrom.getGameTimestamp());
         newCopy.setLayerTimestamp(copyFrom.getLayerTimestamp());
 
         newCopy.setBestowTimestamp(copyFrom.getBestowTimestamp());
 
-        newCopy.setForetold(copyFrom.isForetold());
         newCopy.setTurnInZone(copyFrom.getTurnInZone());
+
+        newCopy.setForetold(copyFrom.isForetold());
         newCopy.setForetoldCostByEffect(copyFrom.isForetoldCostByEffect());
 
         newCopy.setPlotted(copyFrom.isPlotted());

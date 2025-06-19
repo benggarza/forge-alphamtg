@@ -23,6 +23,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
 
 import forge.card.CardRarity;
+import forge.card.CardStateName;
 import forge.card.mana.ManaCost;
 import forge.game.card.CardView;
 import forge.game.card.CardView.CardStateView;
@@ -182,7 +183,7 @@ public class FCardImageRenderer {
             int w = width;
             boolean hasPTBox = false;
             if (!card.isSplitCard() && !card.isFlipCard()) {
-                final CardStateView state = card.getState(card.isAdventureCard() ? false : altState);
+                final CardStateView state = card.getState(card.hasSecondaryState() ? false : altState);
                 if ((state.isCreature() && !state.getKeywordKey().contains("Level up"))
                         || state.isPlaneswalker() || state.isBattle() || state.isVehicle())
                     hasPTBox = true;
@@ -206,10 +207,9 @@ public class FCardImageRenderer {
             final String leftText = needTranslation ? CardTranslation.getTranslatedOracle(leftState) : leftState.getOracleText();
             final CardStateView rightState = card.getRightSplitState();
             String rightText = needTranslation ? CardTranslation.getTranslatedOracle(rightState) : rightState.getOracleText();
-            boolean isAftermath = (rightState.getKeywordKey().contains("Aftermath"));
             BufferedImage leftArt = null;
             BufferedImage rightArt = null;
-            if (isAftermath) {
+            if (rightState.hasAftermath()) {
                 if (art != null) {
                     int leftWidth = Math.round(art.getWidth() * 0.61328125f);
                     leftArt = art.getSubimage(0, 0, leftWidth, art.getHeight());
@@ -258,7 +258,7 @@ public class FCardImageRenderer {
                 g.rotate(Math.PI);
             }
             drawFlipCardImage(g, state, text, flipState, flipText, width, height - heightAdjust, art);
-        } else if (card.isAdventureCard()) {
+        } else if (card.hasSecondaryState()) {
             boolean needTranslation = !card.isToken() || !(card.getCloneOrigin() == null);
             final CardStateView state = card.getState(false);
             final String text = card.getText(state, needTranslation ? CardTranslation.getTranslationTexts(state) : null);
@@ -698,7 +698,8 @@ public class FCardImageRenderer {
             }
         } else {
             fillColorBackground(g, colors, x, y, w, h);
-            SkinIcon icon = FSkin.getIcon(FSkinProp.ICO_LOGO);
+            //Card Art Logo
+            SkinIcon icon = FSkin.getIcon(FSkinProp.ICO_CARDART);
             float artWidth = (float)icon.getSizeForPaint(g).getWidth();
             float artHeight = (float)icon.getSizeForPaint(g).getHeight();
             if (artWidth / artHeight >= (float)w / (float)h) {
@@ -748,8 +749,11 @@ public class FCardImageRenderer {
         //draw type
         x += padding;
         w -= padding;
-        String typeLine = CardDetailUtil.formatCardType(state, true).replace(" - ", " — ");
-        drawVerticallyCenteredString(g, typeLine, new Rectangle(x, y, w, h), TYPE_FONT, TYPE_SIZE);
+        // check for shared type line
+        if (!state.getType().hasStringType("Room") || state.getState() != CardStateName.RightSplit) {
+            String typeLine = CardDetailUtil.formatCardType(state, true).replace(" - ", " — ");
+            drawVerticallyCenteredString(g, typeLine, new Rectangle(x, y, w, h), TYPE_FONT, TYPE_SIZE);
+        }
     }
 
     /**
