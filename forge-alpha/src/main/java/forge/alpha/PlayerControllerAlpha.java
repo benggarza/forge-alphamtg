@@ -52,7 +52,8 @@ import java.util.function.Predicate;
 
 
 /**
- * A prototype for AlphaMTG player controller class
+ * A prototype for AlphaMTG player controller class.
+ * I'm leaving in references to other Ai*Controller classes so I remember what methods need implementation.
  *
  * Handles phase skips for now.
  */
@@ -182,22 +183,98 @@ public class PlayerControllerAlpha extends PlayerController {
     // TODO: review
     @Override
     public boolean confirmAction(SpellAbility sa, PlayerActionConfirmMode mode, String message, List<String> options, Card cardToShow, Map<String, Object> params) {
-        return getAi().confirmAction(sa, mode, message, params);
+        return brains.confirmAction(sa, mode, message, params);
     }
 
     // TODO: review
     @Override
     public boolean confirmBidAction(SpellAbility sa, PlayerActionConfirmMode mode, String string,
                                     int bid, Player winner) {
-        return getAi().confirmBidAction(sa, mode, string, bid, winner);
+        return brains.confirmBidAction(sa, mode, string, bid, winner);
     }
 
     // TODO: review
     @Override
     public boolean confirmStaticApplication(Card hostCard, PlayerActionConfirmMode mode, String message, String logic) {
-        return getAi().confirmStaticApplication(hostCard, logic);
+        return brains.confirmStaticApplication(hostCard, logic);
     }
 
     // confirm Trigger
-
+    @Override
+    public boolean confirmTrigger(WrappedAbility wrapper) {
+        return true;
     }
+
+    @Override
+    public boolean confirmPayment(CostPart costPart, String prompt, SpellAbility sa) {
+        return brains.confirmPayment(costPart); // AI is expected to know what it is paying for at the moment (otherwise add another parameter to this method)
+    }
+
+    @Override
+    public boolean confirmReplacementEffect(ReplacementEffect replacementEffect, SpellAbility effectSA, GameEntity affected, String question) {
+        return brains.aiShouldRun(replacementEffect, effectSA, affected);
+    }
+
+    @Override
+    public List<Card> exertAttackers(List<Card> attackers) {
+        return AiAttackController.exertAttackers(attackers, brains.getAttackAggression());
+    }
+
+    @Override
+    public List<Card> enlistAttackers(List<Card> attackers) {
+        return null;
+    }
+
+    @Override
+    public CardCollection orderBlockers(Card attacker, CardCollection blockers) {
+        return AiBlockController.orderBlockers(attacker, blockers);
+    }
+
+    @Override
+    public CardCollection orderBlocker(Card attacker, Card blocker, CardCollection oldBlockers) {
+        return AiBlockController.orderBlocker(attacker, blocker, oldBlockers);
+    }
+
+    @Override
+    public CardCollection orderAttackers(Card blocker, CardCollection attackers) {
+        return AiBlockController.orderAttackers(blocker, attackers);
+    }
+
+
+    // For now, we will leave memory implementation untouched
+    // And not incorporate into model inputs
+    @Override
+    public void reveal(CardCollectionView cards, ZoneType zone, Player owner, String messagePrefix, boolean addSuffix) {
+        for (Card c : cards) {
+            AiCardMemory.rememberCard(player, c, AiCardMemory.MemorySet.REVEALED_CARDS);
+        }
+    }
+
+    @Override
+    public void reveal(List<CardView> cards, ZoneType zone, PlayerView owner, String messagePrefix, boolean addSuffix) {
+        for (CardView cv : cards) {
+            AiCardMemory.rememberCard(player, player.getGame().findByView(cv), AiCardMemory.MemorySet.REVEALED_CARDS);
+        }
+    }
+
+    @Override
+    public ImmutablePair<CardCollection, CardCollection> arrangeForScry(CardCollection topN) {
+        CardCollection toBottom = new CardCollection();
+        CardCollection toTop = new CardCollection();
+        // For now, put all on top
+        toTop.addAll(topN);
+        return ImmutablePair.of(toTop, toBottom);
+    }
+
+
+    // For now, all on top
+    @Override
+    public ImmutablePair<CardCollection, CardCollection> arrangeForSurveil(CardCollection topN) {
+        CardCollection toGraveyard = new CardCollection();
+        CardCollection toTop = new CardCollection();
+        toTop.addAll(topN);
+        return ImmutablePair.of(toTop, toGraveyard);
+    }
+
+    // willPutCardOnTop
+}
