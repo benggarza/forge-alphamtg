@@ -15,19 +15,21 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package forge.alphamtgai;
+package forge.alpha;
 
 import com.esotericsoftware.minlog.Log;
 import com.google.common.collect.Lists;
 
-import forge.alphamtgai.AiCardMemory.MemorySet;
-//import forge.alphamtgai.simulation.GameStateEvaluator;
-//import forge.alphamtgai.simulation.SpellAbilityPicker;
+// For now, let's ignore the card memory function and only focus on public zones
+// TODO: incorporate revealed cards into private zones
+//import forge.alpha.AiCardMemory.MemorySet;
+// TODO: set up simulator
+//import forge.alpha.simulation.GameStateEvaluator;
+//import forge.alpha.simulation.SpellAbilityPicker;
 import forge.game.*;
 import forge.game.card.*;
 import forge.game.combat.Combat;
 import forge.game.combat.CombatUtil;
-import forge.game.phase.PhaseType;
 import forge.game.player.Player;
 import forge.game.spellability.*;
 import forge.game.zone.ZoneType;
@@ -46,7 +48,7 @@ import static java.lang.Math.max;
  * @author Bennett Garza
  * @version $Id$
  */
-public class AlphaMTGController {
+public class AlphaController {
     // Fields that are definitely required
     private final Player player;
     private final Game game;
@@ -59,11 +61,11 @@ public class AlphaMTGController {
     //private SpellAbilityPicker simPicker;
     //private int lastAttackAggression;
 
-    public AlphaMTGController(final Player computerPlayer, final Game game0) {
+    public AlphaController(final Player computerPlayer, final Game game0) {
         player = computerPlayer;
         game = game0;
-        //memory = new AiCardMemory();
-        //simPicker = new SpellAbilityPicker(game, player);
+        // memory = new AiCardMemory();
+        // simPicker = new SpellAbilityPicker(game, player);
     }
 
     // used by PlayerControllerAI, do nothing here?
@@ -325,7 +327,7 @@ public class AlphaMTGController {
         );
         if (!playBeforeLand.isEmpty()) {
             List<SpellAbility> spellAbilityBeforeLand =
-                    AlphaMTGUtilAbility.getSpellAbilities(playBeforeLand, player);
+                    AlphaUtilAbility.getSpellAbilities(playBeforeLand, player);
 
             int spellAbilityToPlay = spellAbilityGenerator.nextInt(spellAbilityBeforeLand.size() + 1);
             if (spellAbilityToPlay < spellAbilityBeforeLand.size()) {
@@ -333,7 +335,7 @@ public class AlphaMTGController {
             }
         }
 
-        CardCollection landsPlayable = AlphaMTGUtilAbility.getAvailableLandsToPlay(game, player);
+        CardCollection landsPlayable = AlphaUtilAbility.getAvailableLandsToPlay(game, player);
         if (landsPlayable != null) {
             int landToPlay = spellAbilityGenerator.nextInt(landsPlayable.size() + 1);
             if (landToPlay < landsPlayable.size()) {

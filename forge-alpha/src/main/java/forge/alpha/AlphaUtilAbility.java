@@ -1,4 +1,4 @@
-package forge.alphamtgai;
+package forge.alpha;
 
 import com.google.common.collect.Lists;
 import forge.card.CardStateName;
@@ -26,7 +26,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
-public class AlphaMTGUtilAbility {
+public class AlphaUtilAbility {
     public static CardCollection getAvailableLandsToPlay(final Game game, final Player player) {
         if (!game.getStack().isEmpty() || !game.getPhaseHandler().getPhase().isMain()) {
             return null;
@@ -367,8 +367,8 @@ public class AlphaMTGUtilAbility {
                     }
                 }
                 // if the profile specifies it, deprioritize Storm spells in an attempt to build up storm count
-                if (source.hasKeyword(Keyword.STORM) && ai.getController() instanceof PlayerControllerAi) {
-                    p -= (((PlayerControllerAi) ai.getController()).getAi().getIntProperty(AiProps.PRIORITY_REDUCTION_FOR_STORM_SPELLS));
+                if (source.hasKeyword(Keyword.STORM) && ai.getController() instanceof PlayerControllerAlpha) {
+                    p -= (((PlayerControllerAlpha) ai.getController()).getAi().getIntProperty(AiProps.PRIORITY_REDUCTION_FOR_STORM_SPELLS));
                 }
             }
 

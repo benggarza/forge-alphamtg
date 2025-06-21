@@ -9,7 +9,7 @@
         <version>${revision}</version>
     </parent>
 
-    <artifactId>forge-alphamtgai</artifactId>
+    <artifactId>forge-alpha</artifactId>
     <name>Forge AlphaMTG AI</name>
 
     <dependencies>
