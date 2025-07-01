@@ -356,4 +356,59 @@ public class AlphaController {
 
         // TODO: have AI predict Q-value of all spell abilities (and passing) and choose the best one
     }
+
+    // many-to-many action type
+    // e.g. assign blockers to set of attackers
+    // assign attackers to set of defenders
+    public Map<Object, CardCollectionView> chooseManyToMany(final List<Object> sources, final CardCollection choices, Map<Object, Integer> mins, Map<Object, Integer> maxes, String descriptor) {
+        Map<Object, CardCollectionView> assignments = new HashMap<Object, CardCollectionView>();
+        if (sources == null) return null;
+        if (sources != null && sources.size() == 1) {
+            Object source = sources.get(0);
+            int min = mins.get(source);
+            int max = maxes.get(source);
+            assignments.put(source, chooseManyToOne(source, choices, min, max, descriptor));
+            return assignments;
+        }
+
+        // TODO: create search logic for best many-to-many assignment action
+        for (Object source : sources) {
+            assignments.put(source, null);
+        }
+        return assignments;
+
+    }
+
+    // a many-to-one action type
+    // ask the model to choose an optimal combination of cards/spell abilities for action defined by descriptor with single context source
+    // for example: choose cards from gy to exile for delve cost
+    // choose creatures to tap to convoke a spell
+    // choose creatures to block an attacker
+    public CardCollectionView chooseManyToOne(final Object source, final CardCollection choices, int min, int max, String descriptor) {
+        if (min==max && min==1) return new CardCollection(chooseOneToOne(source, choices, descriptor));
+
+        // TODO: create search logic for best many-to-one assignment action
+        return new CardCollection(choices.subList(0,min));
+    }
+
+    // a one-to-one action type
+    // ask the model to choose an optimal card/spell ability
+    // e.g. choose the best spell/ability to play next
+    // choose a single target for a spell
+    public Card chooseOneToOne(final Object source, final CardCollection choices, String descriptor) {
+        // TODO: create search logic for best one-to-one action
+        return choices.get(0);
+    }
+
+    // a many-to-one action type
+    // unsure if this would be used yet
+    // maybe if a creature can block multiple creates then assigning a blocker to multiple attackers
+    public Card chooseOneToMany(final List<Object> sources, final CardCollection choices, String descriptor) {
+        if (sources != null && sources.size()==1) {
+            return chooseOneToOne(sources.get(0), choices, descriptor);
+        }
+
+        // TODO: create search logic for best one-to-many assignment action
+        return choices.get(0);
+    }
 }
