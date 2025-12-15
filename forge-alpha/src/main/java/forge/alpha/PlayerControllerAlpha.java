@@ -88,11 +88,12 @@ public class PlayerControllerAlpha extends PlayerController {
         brains = new AlphaController(p, game);
     }
 
-    public PlayerView getLocalPlayerView() {
-        return player == null ? null : player.getView();
-    }
+    //public PlayerView getLocalPlayerView() {
+    //    return player == null ? null : player.getView();
+    //}
 
 
+    // TODO: Unsure if any of the tempShow functions are useful for the AI
     private final ArrayList<Card> tempShownCards = new ArrayList<>();
 
     public <T> void tempShow(final Iterable<T> objects) {
@@ -133,133 +134,83 @@ public class PlayerControllerAlpha extends PlayerController {
         tempShownCards.clear();
     }
 
-    /**
-     * Uses GUI to learn which spell the player (human in our case) would like
-     * to play
-     */
+    @Override
+    public void autoPassCancel() {
+        // Do nothing
+    }
+
+    @Override
+    public void awaitNextInput() {
+        // Do nothing
+    }
+    @Override
+    public void cancelAwaitNextInput() {
+        // Do nothing
+    }
+
+
     @Override
     public SpellAbility getAbilityToPlay(final Card hostCard, final List<SpellAbility> abilities,
                                          final ITriggerEvent triggerEvent) {
-        // make sure another human player can't choose opponents cards just because he might see them
-        if (triggerEvent != null && !hostCard.isInPlay() && !hostCard.getOwner().equals(player) &&
-                !hostCard.getController().equals(player) &&
-                // If player cast Shaman's Trance, they can play spells from any Graveyard (if other effects allow it to be cast)
-                (!player.hasKeyword("Shaman's Trance") || !hostCard.isInZone(ZoneType.Graveyard))) {
-            boolean noPermission = true;
-            for (CardPlayOption o : hostCard.mayPlay(player)) {
-                if (o.grantsZonePermissions()) {
-                    noPermission = false;
-                    break;
-                }
-            }
-            for (SpellAbility sa : hostCard.getAllSpellAbilities()) {
-                if (sa.hasParam("Activator")
-                        && player.isValid(sa.getParam("Activator"), hostCard.getController(), hostCard, sa)) {
-                    noPermission = false;
-                    break;
-                }
-            }
-            if (noPermission) {
-                return null;
-            }
-        }
-        //FIXME - on mobile gui it allows the card to cast from opponent hands issue #2127, investigate where the bug occurs before this method is called
-        spellViewCache = SpellAbilityView.getMap(abilities);
-        for (SpellAbility sa : abilities) {
-            sa.getView().updateCanPlay(sa);
-        }
-        final SpellAbilityView resultView = getGui().getAbilityToPlay(CardView.get(hostCard),
-                Lists.newArrayList(spellViewCache.keySet()), triggerEvent);
-        return resultView == null ? null : spellViewCache.get(resultView);
+        return  (SpellAbility) brains.chooseOneToOne(hostCard, abilities, "getAbility");
     }
 
+    public AlphaController getAi() { return brains; }
+
+    // TODO: figure out what this does and how we modify for Alpha
     @Override
     public void playSpellAbilityNoStack(final SpellAbility effectSA, final boolean canSetupTargets) {
         HumanPlay.playSpellAbilityNoStack(this, player, effectSA, !canSetupTargets);
     }
 
+    // TODO: review greedy approach. Can we reduce the search space by combining duplicate cards?
     @Override
     public List<PaperCard> sideboard(final Deck deck, final GameType gameType, String message) {
-        CardPool sideboard = deck.get(DeckSection.Sideboard);
-        if (sideboard == null) {
-            // Use an empty cardpool instead of null for 75/0 sideboarding scenario.
-            sideboard = new CardPool();
-        }
+        if (!deck.has(DeckSection.Sideboard)) return null;
 
-        final CardPool main = deck.get(DeckSection.Main);
+        Map<PaperCard, PaperCard> sideboardPlan = Maps.newHashMap();
+        List<PaperCard> main = deck.get(DeckSection.Main).toFlatList();
+        List<PaperCard> sideboard = deck.get(DeckSection.Sideboard).toFlatList();
 
-        final int mainSize = main.countAll();
-        final int sbSize = sideboard.countAll();
-        final int combinedDeckSize = mainSize + sbSize;
+        // previous game. currently not in use
+        Game lastGame = brains.getGame();
+        // current match. currently not in use
+        Match match = lastGame.getMatch();
 
-        final int deckMinSize = Math.min(mainSize, gameType.getDeckFormat().getMainRange().getMinimum());
-        final Range<Integer> sbRange = gameType.getDeckFormat().getSideRange();
-        // Limited doesn't have a sideboard max, so let the Main min take care of things.
-        final int sbMax = sbRange == null ? combinedDeckSize : sbRange.getMaximum();
-
-        List<PaperCard> newMain = null;
-
-        // Skip sideboard loop if there are no sideboarding opportunities
-        if (sbSize == 0 && mainSize == deckMinSize) {
-            return null;
-        }
-
-        // conformance should not be checked here
-        final boolean conform = FModel.getPreferences().getPrefBoolean(FPref.ENFORCE_DECK_LEGALITY);
-        do {
-            if (newMain != null) {
-                String errMsg;
-                if (newMain.size() < deckMinSize) {
-                    errMsg = TextUtil.concatNoSpace(localizer.getMessage("lblTooFewCardsMainDeck", String.valueOf(deckMinSize)));
-                } else {
-                    errMsg = TextUtil.concatNoSpace(localizer.getMessage("lblTooManyCardsSideboard", String.valueOf(sbMax)));
-                }
-                getGui().showErrorDialog(errMsg, localizer.getMessage("lblInvalidDeck"));
+        // greedy approach, since we cannot consider all 75 choose 60 different deck configurations
+        // choose the cards from the sideboard the AI wants
+        List<PaperCard> sideIn = (PaperCard) brains.chooseManyToOne(null, sideboard, 0, sideboard.size(), "sideboardIn");
+        // for each card siding in, choose a card from the maindeck to side out
+        // List<PaperCard> mainOut = new ArrayList<>();
+        for (PaperCard c : sideIn) {
+            PaperCard mainOut = (PaperCard) brains.chooseOneToOne(c, main, "sideboardOut");
+            if (mainOut == null) {
+                continue;
+            } else {
+                sideboard.remove(c);
+                sideboard.add(mainOut);
+                main.add(c);
+                main.remove(mainOut);
             }
-            // Sideboard rules have changed for M14, just need to consider min
-            // maindeck and max sideboard sizes
-            // No longer need 1:1 sideboarding in non-limited formats
-            List<PaperCard> resp = getGui().sideboard(sideboard, main, message);
-            newMain = ObjectUtils.defaultIfNull(resp, main.toFlatList());
-        } while (conform && (newMain.size() < deckMinSize || combinedDeckSize - newMain.size() > sbMax));
+        }
 
-        return newMain;
+        return main;
     }
 
+    // TODO: do we need a new function in AlphaController to choose numbers as we see here?
     @Override
     public Map<Card, Integer> assignCombatDamage(final Card attacker, final CardCollectionView blockers, final CardCollectionView remaining,
                                                  final int damageDealt, final GameEntity defender, final boolean overrideOrder) {
         // Attacker is a poor name here, since the creature assigning damage
         // could just as easily be the blocker.
-        final Map<Card, Integer> map = Maps.newHashMap();
-
-        if ((attacker.hasKeyword(Keyword.TRAMPLE) && defender != null) || (blockers.size() > 1)
-                || ((attacker.hasKeyword("You may assign CARDNAME's combat damage divided as you choose among " +
-                "defending player and/or any number of creatures they control.")) && overrideOrder &&
-                blockers.size() > 0) || (attacker.hasKeyword("Trample:Planeswalker") && defender instanceof Card)) {
-            GameEntityViewMap<Card, CardView> gameCacheBlockers = GameEntityView.getMap(blockers);
-            final CardView vAttacker = CardView.get(attacker);
-            final GameEntityView vDefender = GameEntityView.get(defender);
-            boolean maySkip = false;
-            if (remaining != null && remaining.size() > 1 && attacker.isAttacking()) {
-                maySkip = true;
-            }
-            final Map<CardView, Integer> result = getGui().assignCombatDamage(vAttacker, gameCacheBlockers.getTrackableKeys(), damageDealt,
-                    vDefender, overrideOrder, maySkip);
-            if (result == null) {
-                return null;
-            }
-            for (final Entry<CardView, Integer> e : result.entrySet()) {
-                if (gameCacheBlockers.containsKey(e.getKey())) {
-                    map.put(gameCacheBlockers.get(e.getKey()), e.getValue());
-                } else if (e.getKey() == null || e.getKey().getId() == -1) {
-                    // null key or key with -1 means defender
-                    map.put(null, e.getValue());
-                }
-            }
-        } else {
-            map.put(blockers.isEmpty() ? null : blockers.get(0), damageDealt);
+        CardCollection numberCards = new CardCollection();
+        Map<Card, Integer> map = new HashMap<Card, Integer>();
+        // TODO: review greedy combat damage assignment. can we instead search all damage assignment combinations?
+        for (Card blocker : blockers) {
+            map.put(blocker, (Integer) brains.chooseOneToOne(blocker, numberCards, "assignCombatDamage"));
+            // TODO: reduce remaining damage via numberCards
         }
+
         return map;
     }
 
@@ -1040,27 +991,6 @@ public class PlayerControllerAlpha extends PlayerController {
 
     @Override
     public CardCollectionView orderMoveToZoneList(final CardCollectionView cards, final ZoneType destinationZone, final SpellAbility source) {
-        if (source == null || source.getApi() != ApiType.ReorderZone) {
-            if (destinationZone == ZoneType.Graveyard) {
-                switch (FModel.getPreferences().getPref(FPref.UI_ALLOW_ORDER_GRAVEYARD_WHEN_NEEDED)) {
-                    case ForgeConstants.GRAVEYARD_ORDERING_NEVER:
-                        // No ordering is ever performed by the player except when done by effect (AF ReorderZone)
-                        return cards;
-                    case ForgeConstants.GRAVEYARD_ORDERING_OWN_CARDS:
-                        // Order only if the relevant cards controlled by the player determine the potential necessity for it
-                        if (!getGame().isGraveyardOrdered(player)) {
-                            return cards;
-                        }
-                        break;
-                    case ForgeConstants.GRAVEYARD_ORDERING_ALWAYS:
-                        // Always order cards, no matter if there is a determined case for it or not
-                        break;
-                    default:
-                        // By default, assume no special ordering necessary (but should not get here unless the preference file is borked)
-                        return cards;
-                }
-            }
-        }
 
         tempShowCards(cards);
         GameEntityViewMap<Card, CardView> gameCacheMove = GameEntityView.getMap(cards);
@@ -1121,9 +1051,13 @@ public class PlayerControllerAlpha extends PlayerController {
         if (p != player) {
             descriptor = "opponentDiscard";
         }
+        List<GameObject> selection = brains.chooseManyToOne(sa, new ArrayList<GameObject>(valid), min, max, descriptor);
+        CardCollection cardsToDiscard = new CardCollection();
+        for (GameObject c : selection) {
+            cardsToDiscard.add((Card) c);
+        }
 
-
-        return brains.chooseManyToOne(sa, valid, min, max, descriptor);
+        return cardsToDiscard;
     }
 
     @Override
@@ -1133,12 +1067,12 @@ public class PlayerControllerAlpha extends PlayerController {
             return CardCollection.EMPTY;
         }
 
-        // idea: a generic chooseCombinationSingleSource decision function that takes:
-        // a source card/spell/ability?
-        // the set of cards/spell abilities/objects/etc to choose from
-        // the minimum and maximum number of cards to choose
-        // and am enumerated descriptor (in this case, these are cards to "delve")
-        return brains.chooseManyToOne(null, grave, 0, maxToDelve, "delve");
+        List<GameObject> selection = brains.chooseManyToOne(null, grave, 0, maxToDelve, "delve");
+        CardCollection cardsToDelve = new CardCollection();
+        for (GameObject c : selection) {
+            cardsToDelve.add((Card) c);
+        }
+        return cardsToDelve;
     }
 
     /*
@@ -1151,33 +1085,27 @@ public class PlayerControllerAlpha extends PlayerController {
     @Override
     public CardCollectionView chooseCardsToDiscardUnlessType(final int num, final CardCollectionView hand,
                                                              final String uType, final SpellAbility sa) {
-        String[] splitUTypes = uType.split(",");
-        final InputSelectEntitiesFromList<Card> target = new InputSelectEntitiesFromList<Card>(this, num, num, hand, sa) {
-            private static final long serialVersionUID = -5774108410928795591L;
-
-            @Override
-            protected boolean hasEnoughTargets() {
-                for (final Card c : selected) {
-                    if (c.isValid(splitUTypes, sa.getActivatingPlayer(), sa.getHostCard(), sa)) {
-                        return true;
-                    }
-                }
-                return super.hasEnoughTargets();
+        Iterable<Card> cardsOfType = IterableUtil.filter(hand, CardPredicates.restriction(uType.split(","), sa.getActivatingPlayer(), sa.getHostCard(), sa));
+        List<GameObject> discardType = new ArrayList<GameObject>();
+        if (!Iterables.isEmpty(cardsOfType)) {
+            List<GameObject> cardListOfType = new ArrayList<GameObject>();
+            for (Card c : cardsOfType) {
+                cardListOfType.add(c);
             }
-        };
-        int n = 1;
-        StringBuilder promptType = new StringBuilder();
-        for (String part : splitUTypes) {
-            if (n == 1) {
-                promptType.append(part.toLowerCase());
-            } else {
-                promptType.append(" or ").append(part.toLowerCase());
-            }
-            n++;
+            discardType.add(brains.chooseOneToOne(sa, cardListOfType, "selfDiscard"));
         }
-        target.setMessage(localizer.getMessage("lblSelectNCardsToDiscardUnlessDiscarduType", promptType));
-        target.showAndWait();
-        return new CardCollection(target.getSelected());
+        List<GameObject> handList = new ArrayList<GameObject>();
+        for (Card c : hand) {
+            handList.add(c);
+        }
+        List<GameObject> discardAny = brains.chooseManyToOne(sa, handList, num, num, "selfDiscard");
+
+        // TODO: compare the Q-values of choosing discardType vs discardAny and choose the better option
+        CardCollection cardsToDiscard = new CardCollection();
+        for (GameObject c : discardAny) {
+            cardsToDiscard.add((Card) c);
+        }
+        return cardsToDiscard;
     }
 
     /*
