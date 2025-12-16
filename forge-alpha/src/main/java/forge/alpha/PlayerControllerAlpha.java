@@ -53,6 +53,7 @@ import forge.item.PaperCard;
 import forge.trackable.TrackableCollection;
 import forge.util.*;
 import forge.util.collect.FCollectionView;
+import forge.util.collect.FCollection;
 import io.sentry.Sentry;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.Range;
@@ -976,17 +977,19 @@ public class PlayerControllerAlpha extends PlayerController {
 
     @Override
     public boolean willPutCardOnTop(final Card c) {
-        final CardView view = CardView.get(c);
+        // get the predicted Q-values of putting the card on top and bottom of library and choose
+        CardCollection library = new CardCollection(player.getZone(ZoneType.Library).getCards());
+        CardCollection libraryCardOnTop = (CardCollection) library.clone();
+        CardCollection libraryCardOnBottom = (CardCollection) library.clone().subList(1, library.size());
+        libraryCardOnBottom.add(library.get(0));
 
-        tempShowCard(c);
-        getGui().setCard(c.getView());
+        List<CardCollection> scryChoices = new ArrayList<CardCollection>();
+        scryChoices.add(libraryCardOnTop);
+        scryChoices.add(libraryCardOnBottom);
+        FCollection<? extends GameObject> selection = brains.chooseOneCollection(null, scryChoices,  "scry");
 
-        boolean result = false;
-        result = InputConfirm.confirm(this, view, localizer.getMessage("lblPutCardOnTopOrBottomLibrary", CardTranslation.getTranslatedName(view.getName())),
-                true, ImmutableList.of(localizer.getMessage("lblTop"), localizer.getMessage("lblBottom")));
-
-        endTempShowCards();
-        return result;
+        // TODO: test that this actually works, or if the typing causes issues
+        return selection.equals(libraryCardOnTop);
     }
 
     @Override

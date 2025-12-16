@@ -34,6 +34,7 @@ import forge.game.player.Player;
 import forge.game.spellability.*;
 import forge.game.zone.ZoneType;
 import forge.util.collect.FCollectionView;
+import forge.util.collect.FCollection;
 
 import java.util.*;
 
@@ -393,6 +394,35 @@ public class AlphaController {
         GameObject selection = null;
         double maxQ = 0;
         for (GameObject choice : choices) {
+            // TODO :query the model with state, option, and descriptor
+            double Q = 1;
+            if (Q > maxQ) {
+                maxQ = Q;
+                selection = choice;
+            }
+        }
+        return selection;
+    }
+
+    /**
+     * A variation of chooseOneToOne when the model must evaluate sequences of objects rather than individual.
+     * Used in cases like:
+     * - scrying/surveiling cards on top of library
+     * - ordering cards to be placed in graveyard
+     * - putting multiple spells on the stack at the same time (?)
+     * @param source The source of the action
+     * @param choices The collection of GameObject sequences to evaluate
+     * @param descriptor The action description
+     * @return The GameObject collection that maximizes the predicted Q-Value
+     */
+    public FCollection<? extends GameObject> chooseOneCollection(
+            final GameObject source,
+            final List<? extends FCollection<? extends GameObject>> choices,
+            String descriptor
+    ) {
+        FCollection<? extends GameObject> selection = null;
+        double maxQ = 0;
+        for (FCollection<? extends GameObject> choice : choices) {
             // TODO :query the model with state, option, and descriptor
             double Q = 1;
             if (Q > maxQ) {
